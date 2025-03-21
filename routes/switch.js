@@ -1,16 +1,31 @@
 const express = require("express");
 const router = express.Router();
 const {responseGet} = require("../headers");
-const { addSwitch, editSwitch, deleteSwitch } = require("./db_functions");
+const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll } = require("./db_functions");
 
-/* GET users section. */
-router.get("/", function (req, res, _next) {
-    //get all switches
+/* GET a specific switch by IP */
+router.get("/:switchIp", async (req, res) => {
+    try {
+        const switchIp = req.params.switchIp;
+        const switchData = await getSwitch(switchIp);
+        if (switchData) {
+            res.json(switchData);
+        } else {
+            res.status(404).json({ error: "Switch not found" });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
-router.get("/:switchIp", function (req, res, _next) {
-    const switchIp = req.params.switchIp;
-    responseGet(res, "get " + req.params.switchIp);
+/* GET all switches (alternative route, remove if unnecessary) */
+router.get("/:switchIpAll", async (req, res) => {
+    try {
+        const switches = await getSwitchAll();
+        res.json(switches);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 router.post("/add/", (req, res) => {
