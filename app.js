@@ -6,8 +6,9 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 
 
-// const indexRouter = require('./routes/index');
+const indexRouter = require('./routes/index');
 const switchRouter = require('./routes/switch');
+const apiRouter = require('./routes/api')
 
 
 const app = express();
@@ -22,8 +23,9 @@ app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-//app.use('/', indexRouter);
-app.use('/api/switch', switchRouter);
+app.use('/', indexRouter);
+app.use('/api', apiRouter); // Use API routes
+console.log("✅ API Routes Loaded");
 
 
 

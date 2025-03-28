@@ -1,8 +1,31 @@
 body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+  background-image: url('../assets/Background.png');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
 }
-
-a {
-  color: #00B7FF;
+h1 {
+  color: white;
+  text-shadow: 
+    -2px -2px 0 black, 
+     2px -2px 0 black, 
+    -2px  2px 0 black, 
+     2px  2px 0 black; /* Black outline */
+     text-align: center;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  border: 1px solid gray;
+  padding: 8px;
+  text-align: left;
+  background-color: #f2f2f2;
+}
+th {
+  opacity: 80%;
+}
+td {
+  opacity: 70%;
 }

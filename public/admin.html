@@ -1,0 +1,52 @@
+<html>
+<head>
+  <title>Golden Apple</title>
+  <link rel="stylesheet" href="./stylesheets/style.css">
+  <link rel="icon" type="image/png" href="./assets/golden_apple.png">
+</head>
+
+<body>
+  <h1>Admin Page</h1>
+
+  <table>
+    <thead>
+      <tr>
+        <th>IP Address</th>
+        <th>Name</th>
+      </tr>
+    </thead>
+    <tbody id="table-body">
+      <!-- Dynamic data will be inserted here -->
+    </tbody>
+  </table>
+
+  <script>
+    async function loadSwitchData() {
+    try {
+        const response = await fetch('/api/switches');  // 🔹 Call backend API
+        const switches = await response.json();
+
+        console.log("Switch data:", switches);
+
+        const tableBody = document.querySelector("tbody");
+        tableBody.innerHTML = ""; // Clear table
+
+        switches.forEach(row => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${row.ip}</td>
+                <td>${row.name}</td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+    } catch (error) {
+        console.error("Error loading switch data:", error);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", loadSwitchData);
+  </script>
+
+</body>
+</html>
