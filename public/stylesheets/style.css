@@ -25,9 +25,10 @@ h1 {
 /* Style for table container with scroll functionality */
 #table-container {
   max-height: 550px; /* Set the max height */
-  overflow-y: auto;  /* Enable vertical scrolling when content exceeds height */
+  overflow-y: auto; /* Enable vertical scrolling when content exceeds height */
   width: fit-content;  /* Make sure it matches the table width */
   margin: 0 auto; /* Center the container */
+  position: relative;
 }
 
 table {
@@ -75,7 +76,28 @@ button {
   background-color: #e53935;
 }
 
+.add-btn {
+  background-color: #569fcc;
+}
+
+.add-btn:hover {
+  background-color: #5092bb;
+}
+
 #editMenu {
+  display: none;
+  background-color: lightgray;
+  padding: 20px;
+  border-radius: 8px;
+  width: 300px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 80%;
+}
+
+#addMenu {
   display: none;
   background-color: lightgray;
   padding: 20px;

@@ -35,8 +35,22 @@ async function deleteSwitch(ip){
 }
 
 async function editSwitch(oldIp, newIp, name){
+  if (oldIp !== newIp){
     await deleteSwitch(oldIp);
     await addSwitch(newIp, name);
+    console.log("not update")
+  } else {
+    console.log("update")
+    return new Promise((resolve, reject) => {
+      db.run(`UPDATE switches SET name = "${name}" WHERE ip = "${oldIp}"`, function (err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
 }
 
 async function getSwitch(ip){

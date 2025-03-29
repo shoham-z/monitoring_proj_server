@@ -29,13 +29,13 @@ router.get('/get', async (req, res) => {
 
 // 🟡 ADD a switch (POST)
 router.post('/add', async (req, res) => {
-    const { ip, name, reachable } = req.body;
-    if (!ip || !name || reachable === undefined) {
+    const { ip, name } = req.body;
+    if (!ip || !name === undefined) {
         return res.status(400).json({ error: "Missing required fields" });
     }
     
     try {
-        addSwitch(ip, name, reachable);
+        addSwitch(ip, name);
         res.json({ message: "Switch added successfully" });
     } catch (error) {
         console.error("Error adding switch:", error);
