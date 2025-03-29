@@ -1,9 +1,17 @@
 body {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  height: 100vh;
   background-image: url('../assets/Background.png');
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center;
+  overflow: hidden;
 }
+
 h1 {
   color: white;
   text-shadow: 
@@ -11,21 +19,92 @@ h1 {
      2px -2px 0 black, 
     -2px  2px 0 black, 
      2px  2px 0 black; /* Black outline */
-     text-align: center;
+  text-align: center;
 }
+
+/* Style for table container with scroll functionality */
+#table-container {
+  max-height: 550px; /* Set the max height */
+  overflow-y: auto;  /* Enable vertical scrolling when content exceeds height */
+  width: fit-content;  /* Make sure it matches the table width */
+  margin: 0 auto; /* Center the container */
+}
+
 table {
-  width: 100%;
+  width: 100%;  /* Set table width to 100% of its parent container */
   border-collapse: collapse;
 }
+
 th, td {
   border: 1px solid gray;
   padding: 8px;
   text-align: left;
   background-color: #f2f2f2;
 }
+
 th {
+  opacity: 85%;
+}
+
+td {
+  opacity: 75%;
+}
+
+button {
+  padding: 5px 10px;
+  margin: 0 5px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.edit-btn {
+  background-color: #4CAF50;
+}
+
+.delete-btn {
+  background-color: #f44336;
+}
+
+.edit-btn:hover {
+  background-color: #45a049;
+}
+
+.delete-btn:hover {
+  background-color: #e53935;
+}
+
+#editMenu {
+  display: none;
+  background-color: lightgray;
+  padding: 20px;
+  border-radius: 8px;
+  width: 300px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   opacity: 80%;
 }
-td {
-  opacity: 70%;
+
+.popup {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  width: 300px;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+/* Popup content */
+.popup-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
 }

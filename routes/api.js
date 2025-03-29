@@ -3,7 +3,7 @@ const router = express.Router();
 const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll } = require('./db_functions'); // Import functions
 
 // 🟢 GET all switches
-router.get('/switches', async (req, res) => {
+router.get('/getAll', async (req, res) => {
     try {
         const switches = await getSwitchAll();
         res.json(switches);
@@ -14,7 +14,7 @@ router.get('/switches', async (req, res) => {
 });
 
 // 🔵 GET a single switch by IP
-router.get('/switch/:ip', async (req, res) => {
+router.get('/get', async (req, res) => {
     try {
         const switchData = await getSwitch(req.params.ip);
         if (!switchData) {
@@ -28,7 +28,7 @@ router.get('/switch/:ip', async (req, res) => {
 });
 
 // 🟡 ADD a switch (POST)
-router.post('/switch', async (req, res) => {
+router.post('/add', async (req, res) => {
     const { ip, name, reachable } = req.body;
     if (!ip || !name || reachable === undefined) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -43,31 +43,29 @@ router.post('/switch', async (req, res) => {
     }
 });
 
-// 🟠 EDIT a switch (PUT)
-router.put('/switch', async (req, res) => {
-    const { ip, name } = req.body;
-    if (!ip || !name) {
-        return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    try {
-        await editSwitch(ip, name);
-        res.json({ message: "Switch updated successfully" });
-    } catch (error) {
-        console.error("Error updating switch:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-});
-
 // 🔴 DELETE a switch
-router.delete('/switch/:ip', async (req, res) => {
+router.delete('/delete', async (req, res) => {
     try {
-        deleteSwitch(req.params.ip);
+        const { ip } = req.body;
+        console.log(ip)
+        await deleteSwitch(ip);
         res.json({ message: "Switch deleted successfully" });
     } catch (error) {
         console.error("Error deleting switch:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
+});
+
+// 🟠 EDIT a switch (PUT)
+router.put('/edit', async (req, res) => {
+    const { ip, name, oldIp } = req.body;
+    console.log(`Received IP: ${ip}, Name: ${name} oldIP: ${oldIp}`);
+    editSwitch(oldIp, ip, name);
+  
+    // You can handle the data (e.g., save it to the database, etc.)
+  
+    // Send a response back to the client
+    res.json({message: `Edited Successfully!`});
 });
 
 module.exports = router;

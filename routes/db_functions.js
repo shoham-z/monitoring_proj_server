@@ -10,18 +10,33 @@ let db = new sqlite.Database('./switchesDB.db' , (err) => {
     }
 });
 
-function addSwitch(ip, name, reachable){
-    db.run(`INSERT or IGNORE INTO switches (ip, name, lastActive, reachable) VALUES (?, ?, ?, ?)`, [ip, name, Date.now(), reachable]);
+async function addSwitch(ip, name){
+  return new Promise((resolve, reject) => {
+    db.run(`INSERT or IGNORE INTO switches (ip, name) VALUES (?, ?)`, [ip, name], function (err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
 }
 
-async function editSwitch(ip, name){
-    const row = await getSwitch(ip);
-    await db.run(`DELETE FROM switches WHERE ip = (?)`, [ip]);
-    await db.run(`INSERT or IGNORE INTO switches (ip, name, lastActive, reachable) VALUES (?, ?, ?, ?)`, [ip, name, row.lastActive, row.reachable]);
+async function deleteSwitch(ip){
+  return new Promise((resolve, reject) => {
+    db.run(`DELETE FROM switches WHERE ip = (?)`, [ip], function (err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
 }
 
-function deleteSwitch(ip){
-    db.run(`DELETE FROM switches WHERE ip = (?)`, ip);
+async function editSwitch(oldIp, newIp, name){
+    await deleteSwitch(oldIp);
+    await addSwitch(newIp, name);
 }
 
 async function getSwitch(ip){

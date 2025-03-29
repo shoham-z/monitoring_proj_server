@@ -7,7 +7,6 @@ const logger = require('morgan');
 
 
 const indexRouter = require('./routes/index');
-const switchRouter = require('./routes/switch');
 const apiRouter = require('./routes/api')
 
 
@@ -25,7 +24,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/api', apiRouter); // Use API routes
-console.log("✅ API Routes Loaded");
 
 
 
