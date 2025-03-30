@@ -8,6 +8,8 @@ async function loadSwitchData() {
       const tableBody = document.querySelector("tbody");
       tableBody.innerHTML = ""; // Clear table
 
+      var maxWidth = 0;
+
       switches.forEach(row => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -19,11 +21,25 @@ async function loadSwitchData() {
           </td>
         `;
         tableBody.appendChild(tr);
+
+        const tableContainer = document.querySelector("#table-container");
+        
+        if (tableContainer.offsetWidth > maxWidth){maxWidth = tableContainer.offsetWidth}
+        
       });
+      const tableContainer = document.querySelector("#table-container");
+      const searchBar = document.getElementById("search-bar");
+      searchBar.style.width = tableContainer.offsetWidth + "px";
     } catch (error) {
       console.error("Error loading switch data:", error);
     }
+
 }
+
+setInterval(async () => {
+  await loadSwitchData();
+  filterTable();
+}, 30000);
 
 function toggleForm(formID) {
     var formMenu = document.getElementById(formID);
@@ -121,4 +137,26 @@ function deleteRow(ip) {
       // Close the popup after confirming deletion
       confirmationPopup.style.display = 'none';
     };
+}
+
+function filterTable() {
+  let input = document.getElementById("search-bar").value.toLowerCase();
+  let rows = document.querySelectorAll("#table-body tr");
+
+  rows.forEach(row => {
+      let ip = row.cells[0].textContent.toLowerCase();
+      let name = row.cells[1].textContent.toLowerCase();
+
+      if (ip.includes(input) || name.includes(input)) {
+          row.style.display = "";
+      } else {
+          row.style.display = "none";
+      }
+  });
+}
+
+async function update(menuID) {
+  await loadSwitchData();
+  filterTable();
+  toggleForm(menuID);
 }

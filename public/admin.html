@@ -10,6 +10,8 @@
 <body>
   <h1>Admin Page</h1>
 
+  <input type="text" id="search-bar" placeholder="Search by IP or Name" onkeyup="filterTable()">
+
   <!-- Table container with scroll functionality -->
   <div id="table-container">
     <table>
@@ -97,10 +99,11 @@
         body: JSON.stringify(formData)
       })
       .then(response => response.json())
-      .then(data => {
+      .then(async data => {
         console.log('Form submission successful:', data);
         alert("Edited Successfully!");
-        window.location.reload();
+        
+        update("editMenu");
       })
       .catch(error => {
         console.error('Error during form submission:', error);
@@ -133,11 +136,12 @@
         body: JSON.stringify(formData)
       })
       .then(response => response.json())
-      .then(data => {
+      .then(async data => {
         console.log('Form submission successful:', data);
         alert("Added Successfully!");
-        window.location.reload();
-      })
+
+        update("addMenu");
+        })
       .catch(error => {
         console.error('Error during form submission:', error);
         alert("Error submitting the form. Please try again.");
