@@ -22,14 +22,37 @@ h1 {
   text-align: center;
 }
 
+button:disabled {
+  cursor: not-allowed;
+}
+
+.closed {
+  color: white;
+  text-shadow: 
+    -2px -2px 0 crimson,
+     2px -2px 0 crimson, 
+    -2px  2px 0 crimson, 
+     2px  2px 0 crimson; /* Crimson outline */
+  text-align: center;
+  display: none;
+}
+
 /* Style for table container with scroll functionality */
 #table-container {
   max-height: 550px; /* Set the max height */
   overflow-y: auto; /* Enable vertical scrolling when content exceeds height */
-  width: fit-content;  /* Make sure it matches the table width */
+  overflow-x: hidden;
+  width: 650px;
   margin: 0 auto; /* Center the container */
   position: relative;
 }
+
+td:nth-child(2) {  
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Keep buttons side by side and inside the table */
 
 table {
   width: 100%;  /* Set table width to 100% of its parent container */
@@ -113,7 +136,7 @@ button {
 #search-bar {
   display: block;
   margin: 20px auto;  /* Centers horizontally */
-  width: 50%;  /* Adjust width as needed */
+  width: 650px;  /* Adjust width as needed */
   padding: 8px;
   font-size: 16px;
   border: 1px solid #ccc;
@@ -140,4 +163,8 @@ button {
   padding: 20px;
   border-radius: 10px;
   text-align: center;
+}
+
+.buttons {
+  white-space: nowrap;
 }

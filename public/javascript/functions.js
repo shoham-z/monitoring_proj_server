@@ -1,45 +1,40 @@
 async function loadSwitchData() {
-    try {
-      const response = await fetch('/api/getAll');  // Call backend API
-      const switches = await response.json();
+  try {
+      const response = await fetch('/api/getAll')
 
+      if (!response || !response.ok) {
+          throw new Error("Server offline");
+      }
+
+      const switches = await response.json();
       console.log("Switch data:", switches);
 
       const tableBody = document.querySelector("tbody");
       tableBody.innerHTML = ""; // Clear table
 
-      var maxWidth = 0;
-
       switches.forEach(row => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${row.ip}</td>
-          <td>${row.name}</td>
-          <td>
-            <button class="edit-btn" onclick="editRow('${row.ip}', '${row.name}')">Edit</button>
-            <button class="delete-btn" onclick="deleteRow('${row.ip}')">Delete</button>
-          </td>
-        `;
-        tableBody.appendChild(tr);
-
-        const tableContainer = document.querySelector("#table-container");
-        
-        if (tableContainer.offsetWidth > maxWidth){maxWidth = tableContainer.offsetWidth}
-        
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+              <td>${row.ip}</td>
+              <td>${row.name}</td>
+              <td class="buttons">
+                  <button class="edit-btn" onclick="editRow('${row.ip}', '${row.name}')">Edit</button>
+                  <button class="delete-btn" onclick="deleteRow('${row.ip}')">Delete</button>
+              </td>
+          `;
+          tableBody.appendChild(tr);
       });
-      const tableContainer = document.querySelector("#table-container");
-      const searchBar = document.getElementById("search-bar");
-      searchBar.style.width = tableContainer.offsetWidth + "px";
-    } catch (error) {
-      console.error("Error loading switch data:", error);
-    }
 
+      setTimeout(() => {
+          loadSwitchData();
+          filterTable();
+      }, 5_000);
+  } catch {
+    toggleForm("closedH1");
+    document.querySelectorAll("button").forEach(btn => btn.disabled = true);
+  }
 }
 
-setInterval(async () => {
-  await loadSwitchData();
-  filterTable();
-}, 30000);
 
 function toggleForm(formID) {
     var formMenu = document.getElementById(formID);

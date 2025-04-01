@@ -68,4 +68,9 @@ router.put('/edit', async (req, res) => {
     res.json({message: `Edited Successfully!`});
 });
 
+//Responds if the server is online
+router.head('/online', async (req, res) => {
+    res.status(200).end();
+});
+
 module.exports = router;
