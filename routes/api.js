@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll } = require('./db_functions'); // Import functions
+const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser } = require('./db_functions'); // Import functions
 
 // 🟢 GET all switches
 router.get('/getAll', async (req, res) => {
@@ -69,8 +69,19 @@ router.put('/edit', async (req, res) => {
 });
 
 //Responds if the server is online
-router.head('/online', async (req, res) => {
-    res.status(200).end();
+router.get('/getUser', async (req, res) => {
+    console.log(req.query.username)
+    console.log("ssssssssssssssssssssssssss")
+    try {
+        const userData = await getUser(req.query.username);
+        if (!userData) {
+            return res.json(null);
+        }
+        res.json(userData);
+    } catch (error) {
+        console.error("Error fetching user:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
 });
 
 module.exports = router;

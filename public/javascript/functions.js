@@ -1,6 +1,6 @@
 async function loadSwitchData() {
   try {
-      const response = await fetch('/api/getAll')
+      const response = await fetch('/api/getAll');
 
       if (!response || !response.ok) {
           throw new Error("Server offline");
@@ -155,3 +155,43 @@ async function update(menuID) {
   filterTable();
   toggleForm(menuID);
 }
+
+async function userCheck() {
+  event.preventDefault();
+  console.log("Login form submitted!"); // 🔍 Check if this appears in the console
+
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
+  console.log("Username:", username, "Password:", password); // Check if values are captured
+
+  try {
+      const response = await fetch(`/api/getUser?username=${username}`, {
+          method: "GET",
+          headers: {
+              "Content-Type": "application/json"
+          },
+      });
+
+      console.log("Response received:"); // 🔍 See if this logs
+
+      const data = await response.json();
+      console.log(data)
+      console.log("User data:", data); // 🔍 Check the response
+
+      if (data && data.password === password) {
+          alert("Login successful!");
+          
+          window.location.href = "admin.html";
+      } else {
+        document.getElementById("error-message").style.display = "block";
+      }
+  } catch (error) {
+      console.error("Login error:", error);
+      document.getElementById("error-message").innerText = "Server error. Try again.";
+      document.getElementById("error-message").style.display = "block";
+  }
+}
+
+
+

@@ -75,10 +75,24 @@ async function getSwitchAll(){
       });
 }
 
+async function getUser(username, password) {
+  return new Promise((resolve, reject) => {
+    db.get(`SELECT * FROM users WHERE username = "${username}"`, (err, row) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(row);
+      }
+    });
+  });
+}
+
+
 module.exports = {
     addSwitch,
     editSwitch,
     deleteSwitch,
     getSwitch,
-    getSwitchAll
+    getSwitchAll,
+    getUser
 }

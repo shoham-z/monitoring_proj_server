@@ -1,0 +1,40 @@
+<html>
+
+<head>
+  <title>Golden Apple</title>
+  <link rel="stylesheet" href="./stylesheets/style.css">
+  <script src="./javascript/functions.js"></script>
+  <link rel="icon" type="image/png" href="./assets/golden_apple.png">
+  <style>
+    body {
+      background-image: url('./assets/Background.png');
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="login-container">
+    <h1>Login</h1>
+    <form id="loginForm">
+      <input type="text" id="username" placeholder="Username" required><br>
+      <input type="password" id="password" placeholder="Password" required><br>
+      <button type="submit">Login</button>
+    </form>
+    <p id="error-message" style="color: red; display: none;">Invalid credentials</p>
+  </div>
+
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async function(event) {userCheck();});
+  </script>
+</body>
+
+</html>
