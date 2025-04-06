@@ -77,7 +77,7 @@ async function getSwitchAll(){
 
 async function getUser(username, password) {
   return new Promise((resolve, reject) => {
-    db.get(`SELECT * FROM users WHERE username = "${username}"`, (err, row) => {
+    db.get(`SELECT * FROM users WHERE username = "${username}" AND password = "${password}"`, (err, row) => {
       if (err) {
         reject(err);
       } else {
@@ -87,6 +87,15 @@ async function getUser(username, password) {
   });
 }
 
+function isAuthenticated(req, res, next) {
+  console.log(req.session)
+  if (req.session && req.session.user) {
+    next();
+  } else {
+    res.redirect('/');
+  }
+}
+
 
 module.exports = {
     addSwitch,
@@ -94,5 +103,6 @@ module.exports = {
     deleteSwitch,
     getSwitch,
     getSwitchAll,
-    getUser
+    getUser,
+    isAuthenticated
 }

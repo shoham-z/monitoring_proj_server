@@ -63,6 +63,37 @@
   </div>
 
   <script>
+        // Session timeout duration (15 minutes)
+        const sessionTimeoutDuration =  1000 * 60 * 10; // 15 minutes in milliseconds
+    let sessionTimeout;
+
+    // Redirect to login after 15 minutes
+    sessionTimeout = setTimeout(function() {
+      window.location.href = '/'; // Change this to your login page URL
+    }, sessionTimeoutDuration);
+
+    // Reset session timeout on button press or search bar change
+    document.querySelectorAll('button').forEach(button => {
+      button.addEventListener('click', function() {
+        resetSessionTimeout();
+      });
+    });
+
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('input', resetSessionTimeout);
+    });
+
+    // Function to reset the session timeout
+    function resetSessionTimeout() {
+      console.log(sessionTimeout)
+      clearTimeout(sessionTimeout); // Clear the existing timeout
+      sessionTimeout = setTimeout(function() {
+        window.location.href = '/'; // Redirect after 15 minutes of inactivity
+      }, sessionTimeoutDuration); // Restart the 15-minute countdown
+      console.log(sessionTimeout)
+    }
+
+
     // Handle form submission via JavaScript (AJAX request)
     document.getElementById('editForm').addEventListener('submit', function (event) {
       event.preventDefault(); // Prevent form submission

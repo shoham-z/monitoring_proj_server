@@ -25,10 +25,10 @@ async function loadSwitchData() {
           tableBody.appendChild(tr);
       });
 
-      setTimeout(() => {
-          loadSwitchData();
+      setTimeout(async () => {
+          await loadSwitchData();
           filterTable();
-      }, 5_000);
+      }, 30_000);
   } catch {
     toggleForm("closedH1");
     document.querySelectorAll("button").forEach(btn => btn.disabled = true);
@@ -150,12 +150,6 @@ function filterTable() {
   });
 }
 
-async function update(menuID) {
-  await loadSwitchData();
-  filterTable();
-  toggleForm(menuID);
-}
-
 async function userCheck() {
   event.preventDefault();
   console.log("Login form submitted!"); // 🔍 Check if this appears in the console
@@ -166,11 +160,13 @@ async function userCheck() {
   console.log("Username:", username, "Password:", password); // Check if values are captured
 
   try {
-      const response = await fetch(`/api/getUser?username=${username}`, {
-          method: "GET",
+      const response = await fetch(`/api/login`, {
+          method: "POST",
           headers: {
               "Content-Type": "application/json"
           },
+          body: JSON.stringify({ username, password }),
+          credentials: "include"
       });
 
       console.log("Response received:"); // 🔍 See if this logs
@@ -179,9 +175,8 @@ async function userCheck() {
       console.log(data)
       console.log("User data:", data); // 🔍 Check the response
 
-      if (data && data.password === password) {
+      if (data && data.username) {
           alert("Login successful!");
-          
           window.location.href = "admin.html";
       } else {
         document.getElementById("error-message").style.display = "block";
@@ -192,6 +187,8 @@ async function userCheck() {
       document.getElementById("error-message").style.display = "block";
   }
 }
+
+
 
 
 

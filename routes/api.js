@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser } = require('./db_functions'); // Import functions
+const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser } = require('./server_functions'); // Import functions
 
 // 🟢 GET all switches
 router.get('/getAll', async (req, res) => {
@@ -69,14 +69,19 @@ router.put('/edit', async (req, res) => {
 });
 
 //Responds if the server is online
-router.get('/getUser', async (req, res) => {
-    console.log(req.query.username)
+router.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+    console.log(username + " " + password)
     console.log("ssssssssssssssssssssssssss")
     try {
-        const userData = await getUser(req.query.username);
+        const userData = await getUser(username, password);
         if (!userData) {
             return res.json(null);
         }
+        const user = userData.username;
+        console.log(req.session)
+        req.session.user = { user };
+        console.log(req.session)
         res.json(userData);
     } catch (error) {
         console.error("Error fetching user:", error);
