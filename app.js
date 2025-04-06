@@ -14,7 +14,7 @@ const apiRouter = require('./routes/api');
 const app = express();
 
 app.use(session({
-    secret: 'token-here',
+    secret: 'ae1fc790fb0b1c435e6a9c40cb9c44a4a2e35fbcac61e7c7e3a44b68f65f86d3f0d3c5d394c79fd2aa964f76e6c4dc5f0b6e30e0b6a786dc0e472ad51ad9be66y',
     resave: false,
     saveUninitialized: false,
     cookie: {

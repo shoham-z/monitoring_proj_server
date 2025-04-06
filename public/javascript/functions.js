@@ -35,6 +35,10 @@ async function loadSwitchData() {
   }
 }
 
+function isValidIp(ip) {
+  const ipPattern = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+  return ipPattern.test(ip);
+}
 
 function toggleForm(formID) {
     var formMenu = document.getElementById(formID);
@@ -60,38 +64,6 @@ function editRow(ip, name) {
 
     // Show the form menu
     toggleForm("editMenu");
-}
-
-function addRow(ip, name) {
-    console.log(`Adding row with IP: ${ip} and Name: ${name}`);
-
-    // Show the form menu
-    toggleForm("addMenu");
-
-    const formData = {
-        ip: ip,
-        name: name
-      };
-    
-    fetch('/api/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json', // Indicating we're sending JSON data
-        },
-        body: JSON.stringify(formData) // Convert data to JSON format
-      })
-      .then(response => response.json())
-      .then(data => {
-        // Optionally, handle a successful response (e.g., display a message)
-        alert("Added Successfully!");
-        // Optionally close the form
-        window.location.reload();
-      })
-      .catch(error => {
-        console.error('Error during row deletion:', error);
-        // Optionally, handle an error (e.g., show an error message)
-        alert("Error deleting the row. Please try again.");
-      });
 }
 
 function deleteRow(ip) {
@@ -186,6 +158,12 @@ async function userCheck() {
       document.getElementById("error-message").innerText = "Server error. Try again.";
       document.getElementById("error-message").style.display = "block";
   }
+}
+
+async function update(formID){
+  await loadSwitchData();
+  filterTable();
+  toggleForm(formID);
 }
 
 

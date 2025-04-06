@@ -40,6 +40,7 @@
       <button type="submit" style="background-color: whitesmoke">Submit</button>
     </form>
     <button onclick="toggleForm('editMenu')">Close Form</button>
+    <p id="Edit-invalid-ip" class="error-message" style="display: none;">Please enter a valid IP address</p>
   </div>
 
   <div id="deleteConfirm" class="popup">
@@ -60,6 +61,7 @@
       <button type="submit" style="background-color: whitesmoke">Submit</button>
     </form>
     <button onclick="toggleForm('addMenu')">Close Form</button>
+    <p id="Add-invalid-ip" class="error-message" style="display: none;">Please enter a valid IP address</p>
   </div>
 
   <script>
@@ -116,6 +118,8 @@
         name = nameElement.placeholder;
       }
 
+      if (!isValidIp(ip)){return document.getElementById("Edit-invalid-ip").style.display = "block";}
+
       // Create the data object to send in the request
       const formData = {
         ip: ip,  // If IP is empty, keep the old IP value
@@ -148,6 +152,8 @@
 
       const ip = document.getElementById("AddIP Address").value;
       const name = document.getElementById("AddName").value;
+
+      if (!isValidIp(ip)){return document.getElementById("Add-invalid-ip").style.display = "block";}
 
       // Validate that both fields are not empty
       if (!ip || !name) {

@@ -202,3 +202,8 @@ button {
 .login-container button:hover {
   background: darkgoldenrod;
 }
+
+.error-message {
+  color: red;
+  display: none;
+}
