@@ -7,9 +7,9 @@
   <script src="./javascript/functions.js"></script>
 </head>
 
-<body>
+<body class="admin-page">
   <h1>Admin Page</h1>
-  <h1 class="closed" id="closedH1">The server is offline</h1>
+  <h2 class="closed" id="closedH1">The server is offline</h1>
 
   <input type="text" id="search-bar" placeholder="Search by IP or Name" onkeyup="filterTable()">
 
@@ -20,7 +20,7 @@
         <tr>
           <th>IP Address</th>
           <th>Name</th>
-          <th><button class="add-btn" onclick="toggleForm('addMenu')">Add</button></th>
+          <th><button class="add-btn" onclick="setMenu('add')">Add</button></th>
         </tr>
       </thead>
       <tbody id="table-body">
@@ -29,164 +29,47 @@
     </table>
   </div>
 
-  <div id="editMenu">
-    <h2>Edit Menu</h2>
-    <form id="editForm">
+  <div id="deleteConfirm" class="popup">
+    <div class="popup-content">
+        <p style="color:crimson;">Are you sure you want to delete this item?<br>This action can't be undone.</p>
+        <button class="delete-btn" id="confirmDelete">Yes, delete</button>
+        <button class="cancel-btn" onclick="toggleForm('deleteConfirm', true)" id="cancelDelete">Cancel</button>
+    </div>
+  </div>
+
+  <div id="Menu" class="popup">
+  <div class="popup-content">
+    <h2 id="MenuH2"></h2>
+    <form id="Form">
       <label for="IP Address">IP Address:</label><br>
       <input type="text" id="IP Address" name="IP Address"><br><br>
       <label for="Name">Name:</label><br>
       <input type="text" id="Name" name="Name"><br><br>
       <input type="hidden" id="oldIp" name="oldIp"/>
-      <button type="submit" style="background-color: whitesmoke">Submit</button>
+      <button type="submit" id="submit" style="width: 45%;">Submit</button>
+      <button type="button" style="width: 45%;" class="cancel-btn" onclick="toggleForm('Menu', true)">Close</button>
     </form>
-    <button onclick="toggleForm('editMenu')">Close Form</button>
-    <p id="Edit-invalid-ip" class="error-message" style="display: none;">Please enter a valid IP address</p>
-  </div>
-
-  <div id="deleteConfirm" class="popup">
-    <div class="popup-content">
-        <p style="color:crimson;">Are you sure you want to delete this item?<br>This action can't be undone</p>
-        <button id="confirmDelete">Yes, delete</button>
-        <button onclick="toggleForm('deleteConfirm')" id="cancelDelete">Cancel</button>
+    <p id="invalid-ip" class="error-message" style="display: none;">Please enter a valid IP address</p>
     </div>
   </div>
 
-  <div id="addMenu">
-    <h2>Add Menu</h2>
-    <form id="addForm">
-      <label for="IP Address">IP Address:</label><br>
-      <input type="text" id="AddIP Address" name="IP Address"><br><br>
-      <label for="Name">Name:</label><br>
-      <input type="text" id="AddName" name="Name"><br><br>
-      <button type="submit" style="background-color: whitesmoke">Submit</button>
-    </form>
-    <button onclick="toggleForm('addMenu')">Close Form</button>
-    <p id="Add-invalid-ip" class="error-message" style="display: none;">Please enter a valid IP address</p>
-  </div>
-
   <script>
-        // Session timeout duration (15 minutes)
-        const sessionTimeoutDuration =  1000 * 60 * 10; // 15 minutes in milliseconds
-    let sessionTimeout;
-
-    // Redirect to login after 15 minutes
+  document.addEventListener("DOMContentLoaded", () => {
+    loadSwitchData();
+    
+    // Redirect to login after 10 minutes
     sessionTimeout = setTimeout(function() {
       window.location.href = '/'; // Change this to your login page URL
     }, sessionTimeoutDuration);
 
     // Reset session timeout on button press or search bar change
     document.querySelectorAll('button').forEach(button => {
-      button.addEventListener('click', function() {
-        resetSessionTimeout();
-      });
+      button.addEventListener('click', resetSessionTimeout);
     });
 
     document.querySelectorAll('input').forEach(input => {
-      input.addEventListener('input', resetSessionTimeout);
-    });
-
-    // Function to reset the session timeout
-    function resetSessionTimeout() {
-      console.log(sessionTimeout)
-      clearTimeout(sessionTimeout); // Clear the existing timeout
-      sessionTimeout = setTimeout(function() {
-        window.location.href = '/'; // Redirect after 15 minutes of inactivity
-      }, sessionTimeoutDuration); // Restart the 15-minute countdown
-      console.log(sessionTimeout)
-    }
-
-
-    // Handle form submission via JavaScript (AJAX request)
-    document.getElementById('editForm').addEventListener('submit', function (event) {
-      event.preventDefault(); // Prevent form submission
-
-      // Get the form data
-      const ipElement = document.getElementById("IP Address");
-      const nameElement = document.getElementById("Name");
-      var ip = ipElement.value;
-      var name = nameElement.value;
-      const oldIp = document.getElementById("oldIp").value;
-
-      // Validate that at least one field is filled (either IP Address or Name)
-      
-      if (!ip && !name) {
-        alert("Please fill out at least one field (IP Address or Name).");
-        return;
-      } else if (!ip && name){
-        ip = oldIp;
-      } else if (ip && !name){
-        name = nameElement.placeholder;
-      }
-
-      if (!isValidIp(ip)){return document.getElementById("Edit-invalid-ip").style.display = "block";}
-
-      // Create the data object to send in the request
-      const formData = {
-        ip: ip,  // If IP is empty, keep the old IP value
-        name: name,  // If Name is empty, set it to null
-        oldIp: oldIp
-      };
-
-      fetch('/api/edit', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      })
-      .then(response => response.json())
-      .then(async data => {
-        console.log('Form submission successful:', data);
-        alert("Edited Successfully!");
-        
-        update("editMenu");
-      })
-      .catch(error => {
-        console.error('Error during form submission:', error);
-        alert("Error submitting the form. Please try again.");
-      });
-    });
-
-    document.getElementById('addForm').addEventListener('submit', function (event) {
-      event.preventDefault(); // Prevent form submission
-
-      const ip = document.getElementById("AddIP Address").value;
-      const name = document.getElementById("AddName").value;
-
-      if (!isValidIp(ip)){return document.getElementById("Add-invalid-ip").style.display = "block";}
-
-      // Validate that both fields are not empty
-      if (!ip || !name) {
-        alert("Please fill out all fields.");
-        return;
-      }
-
-      const formData = {
-        ip: ip,
-        name: name
-      };
-
-      fetch('/api/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      })
-      .then(response => response.json())
-      .then(async data => {
-        console.log('Form submission successful:', data);
-        alert("Added Successfully!");
-
-        update("addMenu");
-        })
-      .catch(error => {
-        console.error('Error during form submission:', error);
-        alert("Error submitting the form. Please try again.");
-      });
-    });
-
-    document.addEventListener("DOMContentLoaded", loadSwitchData);
+      input.addEventListener('input', resetSessionTimeout);});
+  });
   </script>
 </body>
 </html>

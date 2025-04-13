@@ -1,3 +1,7 @@
+// Session timeout duration (10 minutes)
+const sessionTimeoutDuration =  1000 * 60 * 10; // 10 minutes in milliseconds
+let sessionTimeout;
+
 async function loadSwitchData() {
   try {
       const response = await fetch('/api/getAll');
@@ -17,9 +21,9 @@ async function loadSwitchData() {
           tr.innerHTML = `
               <td>${row.ip}</td>
               <td>${row.name}</td>
-              <td class="buttons">
-                  <button class="edit-btn" onclick="editRow('${row.ip}', '${row.name}')">Edit</button>
-                  <button class="delete-btn" onclick="deleteRow('${row.ip}')">Delete</button>
+              <td style="white-space: nowrap;">
+                  <button id="edit ${row.ip}"class="edit-btn" onclick="setMenu('${"edit"}', '${row.ip}', '${row.name}')">Edit</button>
+                  <button id="add ${row.ip}"class="delete-btn" onclick="deleteRow('${row.ip}')">Delete</button>
               </td>
           `;
           tableBody.appendChild(tr);
@@ -35,35 +39,103 @@ async function loadSwitchData() {
   }
 }
 
+function resetSessionTimeout() {
+  console.log(sessionTimeout)
+  clearTimeout(sessionTimeout); // Clear the existing timeout
+  sessionTimeout = setTimeout(function() {
+    window.location.href = '/'; // Redirect after 10 minutes of inactivity
+  }, sessionTimeoutDuration); // Restart the 10-minute countdown
+  console.log(sessionTimeout)
+}
+
 function isValidIp(ip) {
   const ipPattern = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
   return ipPattern.test(ip);
 }
 
-function toggleForm(formID) {
-    var formMenu = document.getElementById(formID);
-    if (formMenu.style.display === "none" || formMenu.style.display === "") {
-      formMenu.style.display = "block";
-    } else {
-      formMenu.style.display = "none";
-    }
+function edit(event){ 
+  event.preventDefault();
+  const ipElement = document.getElementById("IP Address");
+  const nameElement = document.getElementById("Name");
+  var ip = ipElement.value;
+  var name = nameElement.value;
+  const oldIp = document.getElementById("oldIp").value;
+
+  if (!ip && !name) {
+    alert("Please fill out at least one field (IP Address or Name).");
+    return;
+  } else if (!ip && name){
+    ip = oldIp;
+  } else if (ip && !name){
+    name = nameElement.placeholder;
+  }
+
+  if (!isValidIp(ip)){return document.getElementById("invalid-ip").style.display = "block";}
+
+  const formData = {
+    ip: ip,
+    name: name,
+    oldIp: oldIp
+  };
+
+  fetch('/api/edit', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(formData)
+  })
+  .then(response => response.json())
+  .then(async data => {
+    console.log('Form submission successful:', data);
+    alert("Edited Successfully!");
+    update("Menu");
+  })
+  .catch(error => {
+    console.error('Error during form submission:', error);
+    alert("Error submitting the form. Please try again.");
+  });
 }
 
-function editRow(ip, name) {
-    console.log(`Editing row with IP: ${ip} and Name: ${name}`);
+function toggleForm(ID, close) {
+  //Closes other menus
+  var menu2;
+  if (ID === "Menu"){menu2 = document.getElementById("deleteConfirm");}
+  else if (ID === "deleteConfirm"){menu2 = document.getElementById("Menu");}
+  menu2.style.display = "none";
 
-    // Set placeholders for IP Address and Name fields
+  // Toggle the clicked menu
+  const menu = document.getElementById(ID);
+  if (close){menu.style.display = "none";}
+  else {menu.style.display = "block";}
+}
+
+function setMenu(type, ip, name) {
+    console.log(`${type} row with IP: ${ip} and Name: ${name}`);
+
+    const submit = document.getElementById("submit");
+
     const ipElement = document.getElementById("IP Address");
     const nameElement = document.getElementById("Name");
-    ipElement.placeholder = ip;
-    nameElement.placeholder = name;
-    document.getElementById("oldIp").value = ip;
-
     ipElement.value = "";
     nameElement.value = "";
+    document.getElementById("invalid-ip").style.display = "none";
+    const h2 = document.getElementById("MenuH2");
 
-    // Show the form menu
-    toggleForm("editMenu");
+    if (type === "edit"){
+      document.getElementById("oldIp").value = ip;
+      ipElement.placeholder = ip;
+      nameElement.placeholder = name;
+      h2.textContent = "Edit Menu";
+      submit.onclick = (event) => edit(event);
+    } else {
+      ipElement.placeholder = "";
+      nameElement.placeholder = "";
+      h2.textContent = "Add Menu";
+      submit.onclick = (event) => add(event);
+    }
+
+    toggleForm("Menu")
 }
 
 function deleteRow(ip) {
@@ -71,37 +143,29 @@ function deleteRow(ip) {
     const confirmationPopup = document.getElementById('deleteConfirm');
     toggleForm("deleteConfirm");
 
-    // Add the event listener to "Yes, delete" only once
     const confirmDeleteButton = document.getElementById('confirmDelete');
     confirmDeleteButton.onclick = function() {
-      // Here you would handle the actual deletion, such as making an AJAX request
-            // Create the data object to send in the request
-    const formData = {
-      ip: ip
-    };
+      const formData = {
+        ip: ip
+      };
 
+      fetch('/api/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert("Deleted Successfully!");
+        window.location.reload();
+      })
+      .catch(error => {
+        console.error('Error during row deletion:', error);
+        alert("Error deleting the row. Please try again.");
+      });
 
-    fetch('/api/delete', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json', // Indicating we're sending JSON data
-      },
-      body: JSON.stringify(formData) // Convert data to JSON format
-    })
-    .then(response => response.json())
-    .then(data => {
-      // Optionally, handle a successful response (e.g., display a message)
-      alert("Deleted Successfully!");
-      // Optionally close the form
-      window.location.reload();
-    })
-    .catch(error => {
-      console.error('Error during row deletion:', error);
-      // Optionally, handle an error (e.g., show an error message)
-      alert("Error deleting the row. Please try again.");
-    });
-
-      // Close the popup after confirming deletion
       confirmationPopup.style.display = 'none';
     };
 }
@@ -124,12 +188,10 @@ function filterTable() {
 
 async function userCheck() {
   event.preventDefault();
-  console.log("Login form submitted!"); // 🔍 Check if this appears in the console
+  console.log("Login form submitted!");
 
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
-
-  console.log("Username:", username, "Password:", password); // Check if values are captured
 
   try {
       const response = await fetch(`/api/login`, {
@@ -141,11 +203,7 @@ async function userCheck() {
           credentials: "include"
       });
 
-      console.log("Response received:"); // 🔍 See if this logs
-
       const data = await response.json();
-      console.log(data)
-      console.log("User data:", data); // 🔍 Check the response
 
       if (data && data.username) {
           alert("Login successful!");
@@ -163,10 +221,42 @@ async function userCheck() {
 async function update(formID){
   await loadSwitchData();
   filterTable();
-  toggleForm(formID);
+  toggleForm(formID, true);
 }
 
+function add(event){
+  event.preventDefault();
+  const ip = document.getElementById("IP Address").value;
+  const name = document.getElementById("Name").value;
 
+  if (!isValidIp(ip)){return document.getElementById("invalid-ip").style.display = "block";}
 
+  if (!ip || !name) {
+    alert("Please fill out all fields.");
+    return;
+  }
 
+  const formData = {
+    ip: ip,
+    name: name
+  };
 
+  fetch('/api/add', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(formData)
+  })
+  .then(response => response.json())
+  .then(async data => {
+    console.log('Form submission successful:', data);
+    alert("Added Successfully!");
+
+    update("Menu");
+  })
+  .catch(error => {
+    console.error('Error during form submission:', error);
+    alert("Error submitting the form. Please try again.");
+  });
+}

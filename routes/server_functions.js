@@ -10,6 +10,8 @@ let db = new sqlite.Database('./switchesDB.db' , (err) => {
     }
 });
 
+const argon2 = require('argon2');
+
 async function addSwitch(ip, name){
   return new Promise((resolve, reject) => {
     db.run(`INSERT or IGNORE INTO switches (ip, name) VALUES (?, ?)`, [ip, name], function (err) {
@@ -75,9 +77,9 @@ async function getSwitchAll(){
       });
 }
 
-async function getUser(username, password) {
+async function getUser(username) {
   return new Promise((resolve, reject) => {
-    db.get(`SELECT * FROM users WHERE username = "${username}" AND password = "${password}"`, (err, row) => {
+    db.get(`SELECT * FROM users WHERE username = "${username}"`, (err, row) => {
       if (err) {
         reject(err);
       } else {
@@ -96,6 +98,15 @@ function isAuthenticated(req, res, next) {
   }
 }
 
+async function hashPassword(password) {
+  try {
+    const hashedPassword = await argon2.hash(password);
+    console.log('Hashed Password:', hashedPassword);
+    return hashedPassword; // Store this hashed password in your DB
+  } catch (err) {
+    console.error('Error hashing password:', err);
+  }
+}
 
 module.exports = {
     addSwitch,
@@ -104,5 +115,6 @@ module.exports = {
     getSwitch,
     getSwitchAll,
     getUser,
-    isAuthenticated
+    isAuthenticated,
+    hashPassword
 }

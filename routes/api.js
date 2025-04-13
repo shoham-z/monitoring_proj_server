@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser } = require('./server_functions'); // Import functions
+const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser, hashPassword } = require('./server_functions'); // Import functions
+const argon2 = require('argon2');
 
 // 🟢 GET all switches
 router.get('/getAll', async (req, res) => {
@@ -71,11 +72,12 @@ router.put('/edit', async (req, res) => {
 //Responds if the server is online
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    console.log(username + " " + password)
-    console.log("ssssssssssssssssssssssssss")
+    console.log("Crzay?")
     try {
-        const userData = await getUser(username, password);
-        if (!userData) {
+        const userData = await getUser(username);
+        console.log(userData)
+        const valid = await argon2.verify(userData.password, password)
+        if (!userData || !valid) {
             return res.json(null);
         }
         const user = userData.username;

@@ -5,7 +5,7 @@ const ejs = require('ejs');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const session = require('express-session');
-const { isAuthenticated } = require('./routes/server_functions')
+const { isAuthenticated } = require('./routes/server_functions');
 
 
 const apiRouter = require('./routes/api');
@@ -44,6 +44,11 @@ app.get('/', (req, res) => {
 });
 
 app.get('/admin.html', isAuthenticated, (req, res) => {
+    res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    });
     res.sendFile(path.join(__dirname, 'views_secure/admin.html'));
 });
 
