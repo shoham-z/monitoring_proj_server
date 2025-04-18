@@ -36,8 +36,9 @@ router.post('/add', async (req, res) => {
     }
     
     try {
-        addSwitch(ip, name);
-        res.json({ message: "Switch added successfully" });
+        const success = await addSwitch(ip, name);
+        if (success?.error){res.status(400).json(success);}
+        else {res.json({ message: "Switch added successfully" });}
     } catch (error) {
         console.error("Error adding switch:", error);
         res.status(500).json({ error: "Internal Server Error" });
@@ -48,7 +49,6 @@ router.post('/add', async (req, res) => {
 router.delete('/delete', async (req, res) => {
     try {
         const { ip } = req.body;
-        console.log(ip)
         await deleteSwitch(ip);
         res.json({ message: "Switch deleted successfully" });
     } catch (error) {
@@ -60,30 +60,31 @@ router.delete('/delete', async (req, res) => {
 // 🟠 EDIT a switch (PUT)
 router.put('/edit', async (req, res) => {
     const { ip, name, oldIp } = req.body;
-    console.log(`Received IP: ${ip}, Name: ${name} oldIP: ${oldIp}`);
-    editSwitch(oldIp, ip, name);
+    try {
+        const result = await editSwitch(oldIp, ip, name);   
+        // Send a response back to the client
+        if (result?.error){res.status(409).json(result);}
+        else {res.json({message: `Edited Successfully!`});}
+    } catch (err) {
+        if (err?.error){res.status(409).json(err);}
+        else {res.status(400).json(err);}
+    }
   
     // You can handle the data (e.g., save it to the database, etc.)
-  
-    // Send a response back to the client
-    res.json({message: `Edited Successfully!`});
+
 });
 
-//Responds if the server is online
+//checks credentials and saves into session
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    console.log("Crzay?")
     try {
         const userData = await getUser(username);
-        console.log(userData)
         const valid = await argon2.verify(userData.password, password)
         if (!userData || !valid) {
             return res.json(null);
         }
         const user = userData.username;
-        console.log(req.session)
         req.session.user = { user };
-        console.log(req.session)
         res.json(userData);
     } catch (error) {
         console.error("Error fetching user:", error);

@@ -11,7 +11,6 @@ async function loadSwitchData() {
       }
 
       const switches = await response.json();
-      console.log("Switch data:", switches);
 
       const tableBody = document.querySelector("tbody");
       tableBody.innerHTML = ""; // Clear table
@@ -23,7 +22,7 @@ async function loadSwitchData() {
               <td>${row.name}</td>
               <td style="white-space: nowrap;">
                   <button id="edit ${row.ip}"class="edit-btn" onclick="setMenu('${"edit"}', '${row.ip}', '${row.name}')">Edit</button>
-                  <button id="add ${row.ip}"class="delete-btn" onclick="deleteRow('${row.ip}')">Delete</button>
+                  <button id="add ${row.ip}"class="delete-btn" onclick="deleteRow('${row.ip}', '${row.name}')">Delete</button>
               </td>
           `;
           tableBody.appendChild(tr);
@@ -34,18 +33,18 @@ async function loadSwitchData() {
           filterTable();
       }, 30_000);
   } catch {
-    toggleForm("closedH1");
-    document.querySelectorAll("button").forEach(btn => btn.disabled = true);
+    const title = document.getElementById("title");
+    title.className = "closed";
+    title.textContent = "The Server Is Offline";
+    document.querySelectorAll("button:not(.cancel-btn)").forEach(btn => btn.disabled = true);
   }
 }
 
 function resetSessionTimeout() {
-  console.log(sessionTimeout)
   clearTimeout(sessionTimeout); // Clear the existing timeout
   sessionTimeout = setTimeout(function() {
     window.location.href = '/'; // Redirect after 10 minutes of inactivity
   }, sessionTimeoutDuration); // Restart the 10-minute countdown
-  console.log(sessionTimeout)
 }
 
 function isValidIp(ip) {
@@ -62,7 +61,7 @@ function edit(event){
   const oldIp = document.getElementById("oldIp").value;
 
   if (!ip && !name) {
-    alert("Please fill out at least one field (IP Address or Name).");
+    errorText("Please fill out at least one field\n (IP Address or Name).");
     return;
   } else if (!ip && name){
     ip = oldIp;
@@ -70,7 +69,10 @@ function edit(event){
     name = nameElement.placeholder;
   }
 
-  if (!isValidIp(ip)){return document.getElementById("invalid-ip").style.display = "block";}
+  if (!isValidIp(ip)){
+    errorText("Please enter a valid IP address");
+    return;
+  }
 
   const formData = {
     ip: ip,
@@ -87,21 +89,29 @@ function edit(event){
   })
   .then(response => response.json())
   .then(async data => {
-    console.log('Form submission successful:', data);
-    alert("Edited Successfully!");
-    update("Menu");
+    if (!data?.error){
+      alert("Edited Successfully!");
+      update("Menu");
+    } else {errorText('IP and name must be unique');}
   })
   .catch(error => {
     console.error('Error during form submission:', error);
-    alert("Error submitting the form. Please try again.");
+    errorText("Error submitting the form.\n Please try again.");
   });
 }
 
-function toggleForm(ID, close) {
+function errorText(text){
+  const element = document.getElementById("invalid-input");
+  element.textContent = text;
+  element.style.display = "block";
+  alert(text.replace(/\n/g, ' '));
+}
+
+function toggleMenu(ID, close) {
   //Closes other menus
   var menu2;
-  if (ID === "Menu"){menu2 = document.getElementById("deleteConfirm");}
-  else if (ID === "deleteConfirm"){menu2 = document.getElementById("Menu");}
+  if (ID === "Menu"){menu2 = document.getElementById("deleteMenu");}
+  else if (ID === "deleteMenu"){menu2 = document.getElementById("Menu");}
   menu2.style.display = "none";
 
   // Toggle the clicked menu
@@ -111,7 +121,6 @@ function toggleForm(ID, close) {
 }
 
 function setMenu(type, ip, name) {
-    console.log(`${type} row with IP: ${ip} and Name: ${name}`);
 
     const submit = document.getElementById("submit");
 
@@ -119,7 +128,7 @@ function setMenu(type, ip, name) {
     const nameElement = document.getElementById("Name");
     ipElement.value = "";
     nameElement.value = "";
-    document.getElementById("invalid-ip").style.display = "none";
+    document.getElementById("invalid-input").style.display = "none";
     const h2 = document.getElementById("MenuH2");
 
     if (type === "edit"){
@@ -135,13 +144,14 @@ function setMenu(type, ip, name) {
       submit.onclick = (event) => add(event);
     }
 
-    toggleForm("Menu")
+    toggleMenu("Menu")
 }
 
-function deleteRow(ip) {
-    console.log(`Deleting row with IP: ${ip}`);
-    const confirmationPopup = document.getElementById('deleteConfirm');
-    toggleForm("deleteConfirm");
+function deleteRow(ip, name) {
+    const confirmationPopup = document.getElementById('deleteMenu');
+    const title = document.getElementById("deleteH1");
+    title.textContent = `Name: ${name} \n IP: ${ip}`
+    toggleMenu("deleteMenu");
 
     const confirmDeleteButton = document.getElementById('confirmDelete');
     confirmDeleteButton.onclick = function() {
@@ -163,7 +173,7 @@ function deleteRow(ip) {
       })
       .catch(error => {
         console.error('Error during row deletion:', error);
-        alert("Error deleting the row. Please try again.");
+        errorText("Error deleting the row.\n Please try again.");
       });
 
       confirmationPopup.style.display = 'none';
@@ -188,7 +198,6 @@ function filterTable() {
 
 async function userCheck() {
   event.preventDefault();
-  console.log("Login form submitted!");
 
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
@@ -221,7 +230,7 @@ async function userCheck() {
 async function update(formID){
   await loadSwitchData();
   filterTable();
-  toggleForm(formID, true);
+  toggleMenu(formID, true);
 }
 
 function add(event){
@@ -229,10 +238,13 @@ function add(event){
   const ip = document.getElementById("IP Address").value;
   const name = document.getElementById("Name").value;
 
-  if (!isValidIp(ip)){return document.getElementById("invalid-ip").style.display = "block";}
+  if (!isValidIp(ip)){
+    errorText("Please enter a valid IP address");
+    return;
+  }
 
   if (!ip || !name) {
-    alert("Please fill out all fields.");
+    errorText("Please fill out all fields.");
     return;
   }
 
@@ -250,13 +262,13 @@ function add(event){
   })
   .then(response => response.json())
   .then(async data => {
-    console.log('Form submission successful:', data);
-    alert("Added Successfully!");
-
-    update("Menu");
+    if (!data?.error){
+      alert("Added Successfully!");
+      update("Menu");
+    } else { errorText('IP and name must be unique');}
   })
   .catch(error => {
     console.error('Error during form submission:', error);
-    alert("Error submitting the form. Please try again.");
+    errorText("Error submitting the form.\n Please try again.");
   });
 }

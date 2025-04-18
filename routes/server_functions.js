@@ -14,9 +14,10 @@ const argon2 = require('argon2');
 
 async function addSwitch(ip, name){
   return new Promise((resolve, reject) => {
-    db.run(`INSERT or IGNORE INTO switches (ip, name) VALUES (?, ?)`, [ip, name], function (err) {
-      if (err) {
-        reject(err);
+    db.run(`INSERT INTO switches (ip, name) VALUES (?, ?)`, [ip, name], function (err) {
+      if (err){
+        if (err.message.includes("UNIQUE")){reject({error: 'IP and name must be unique'});}
+        else {reject(err);}
       } else {
         resolve();
       }
@@ -38,13 +39,16 @@ async function deleteSwitch(ip){
 
 async function editSwitch(oldIp, newIp, name){
   if (oldIp !== newIp){
+    const row = await getSwitch(newIp);
+    if (row){return {error: 'IP and name must be unique'};}
     await deleteSwitch(oldIp);
     await addSwitch(newIp, name);
   } else {
     return new Promise((resolve, reject) => {
       db.run(`UPDATE switches SET name = "${name}" WHERE ip = "${oldIp}"`, function (err) {
-        if (err) {
-          reject(err);
+        if (err){
+          if (err.message.includes("UNIQUE")){reject({error: 'IP and name must be unique'});}
+          else {reject(err);}
         } else {
           resolve();
         }
