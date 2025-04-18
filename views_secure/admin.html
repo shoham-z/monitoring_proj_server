@@ -47,12 +47,12 @@
       <label for="IP Address">IP Address:</label><br>
       <input type="text" id="IP Address" name="IP Address"><br><br>
       <label for="Name">Name:</label><br>
-      <input type="text" id="Name" name="Name"><br><br>
+      <input type="text" id="Name" name="Name" autocomplete="off"><br><br>
       <input type="hidden" id="oldIp" name="oldIp"/>
       <button type="submit" id="submit" style="width: 45%;">Submit</button>
       <button type="button" style="width: 45%;" class="cancel-btn" onclick="toggleMenu('Menu', true)">Close</button>
     </form>
-    <p id="invalid-input" class="error-message" style="display: none;">Please enter a valid IP address</p>
+    <p id="invalid-input" class="error-message" style="display: none;"></p>
     </div>
   </div>
 

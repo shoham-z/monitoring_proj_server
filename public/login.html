@@ -11,10 +11,10 @@
 <body>
   <div class="login-container">
     <h1>Login</h1>
-    <form id="loginForm">
-      <input type="text" style="width: 100%;" id="username" placeholder="Username" required><br>
-      <input type="password" style="width: 100%;" id="password" placeholder="Password" required><br>
-      <button type="submit" style="width:80%;" onclick="userCheck()">Login</button>
+    <form id="loginForm" onsubmit="return userCheck()">
+      <input type="text" style="width: 100%;" id="username" placeholder="Username" autocomplete="off" required><br>
+      <input type="password" style="width: 100%;" id="password" placeholder="Password" autocomplete="off" required><br>
+      <button type="submit" style="width:80%;">Login</button>
     </form>
     <p id="error-message" class="error-message">Invalid credentials</p>
   </div>

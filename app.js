@@ -22,6 +22,14 @@ app.use(session({
     }
 }));
 
+app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+});
+
+const PORT = 3001;
+const HOST = '0.0.0.0';
+app.listen(PORT, HOST);
 
 app.set('view engine', 'ejs');
 app.use(cors({
