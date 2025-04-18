@@ -219,3 +219,14 @@ input::placeholder {
 ::-webkit-scrollbar-thumb:hover {
   background-color: #417da3;
 }
+
+#drag-handle {
+  height: 10px;
+  width: 50%;
+  margin: 0 auto;
+  background-color: #38343c;
+  cursor: move;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  user-select: none;
+}

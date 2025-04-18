@@ -108,16 +108,23 @@ function errorText(text){
 }
 
 function toggleMenu(ID, close) {
-  //Closes other menus
-  var menu2;
-  if (ID === "Menu"){menu2 = document.getElementById("deleteMenu");}
-  else if (ID === "deleteMenu"){menu2 = document.getElementById("Menu");}
+  // Close the other menu
+  const menu2 = (ID === "Menu") ? document.getElementById("deleteMenu") : document.getElementById("Menu");
   menu2.style.display = "none";
 
   // Toggle the clicked menu
   const menu = document.getElementById(ID);
-  if (close){menu.style.display = "none";}
-  else {menu.style.display = "block";}
+  if (close) {
+    menu.style.display = "none";
+  } else {
+    // Manually center the menu when showing it
+    menu.style.position = "fixed";
+    menu.style.top = "50%";
+    menu.style.left = "50%";
+    menu.style.transform = "translate(-50%, -50%)";
+
+    menu.style.display = "block"; // Show the menu
+  }
 }
 
 function setMenu(type, ip, name) {
@@ -271,4 +278,32 @@ function add(event){
     console.error('Error during form submission:', error);
     errorText("Error submitting the form.\n Please try again.");
   });
+}
+
+function dragable(menuID){
+  const el = document.getElementById(menuID);
+  const handle = el.querySelector("#drag-handle");
+  let offsetX, offsetY;
+
+  handle.style.cursor = "move";
+  handle.onmousedown = e => {
+    e.preventDefault();
+    offsetX = e.clientX - el.offsetLeft;
+    offsetY = e.clientY - el.offsetTop;
+
+    const move = e => {
+      el.style.position = "absolute";
+      el.style.left = `${e.clientX - offsetX}px`;
+      el.style.top = `${e.clientY - offsetY}px`;
+      el.style.zIndex = 9999;
+    };
+
+    const up = () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+    };
+
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  };
 }
