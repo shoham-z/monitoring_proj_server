@@ -2,8 +2,10 @@
   "name": "api",
   "version": "0.0.0",
   "private": true,
+  "main": "main.js",
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "electron .",
+    "server": "node app.js"
   },
   "dependencies": {
     "argon2": "^0.41.1",
@@ -17,5 +19,8 @@
     "multer": "^1.4.5-lts.1",
     "sqlite": "^4.1.1",
     "sqlite3": "^5.0.8"
+  },
+  "devDependencies": {
+    "electron": "^35.2.0"
   }
 }

@@ -27,9 +27,7 @@ app.use((req, res, next) => {
     next();
 });
 
-const PORT = 3001;
-const HOST = '0.0.0.0';
-app.listen(PORT, HOST);
+app.listen(3001, '0.0.0.0');
 
 app.set('view engine', 'ejs');
 app.use(cors({
