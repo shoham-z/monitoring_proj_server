@@ -7,7 +7,6 @@ const logger = require('morgan');
 const session = require('express-session');
 const { isAuthenticated } = require('./routes/server_functions');
 
-
 const apiRouter = require('./routes/api');
 
 

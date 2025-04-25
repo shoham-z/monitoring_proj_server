@@ -1,6 +1,16 @@
-const { app, BrowserWindow, Tray, Menu } = require('electron');
+const { app, BrowserWindow, Tray, Menu, dialog } = require('electron');
 const path = require('path');
 const childProcess = require('child_process');
+
+const appRoot = !app.isPackaged
+  ? app.getAppPath() // works in dev + production
+  : path.join(process.resourcesPath);
+
+const RESOURCES_PATH = path.join(appRoot, 'public/assets');
+
+const asset = (file) => path.join(RESOURCES_PATH, file);
+
+const iconPath = asset("apple.png");
 
 let tray = null;
 let mainWindow = null;
@@ -9,8 +19,9 @@ function createWindow () {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    show: false,
-    icon: 'public/assets/apple.png',
+    show: true,
+    icon: iconPath,
+    autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false, // safer, especially with server
       contextIsolation: true
@@ -21,7 +32,7 @@ function createWindow () {
 }
 
 function createTray() {
-    tray = new Tray('public/assets/apple.png');
+    tray = new Tray(iconPath);
   
     const contextMenu = Menu.buildFromTemplate([
       {
@@ -52,10 +63,23 @@ function createTray() {
     });
   }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Start the Express server
-  childProcess.fork(path.join(__dirname, 'app.js'));
+  await childProcess.fork(path.join(__dirname, 'app.js'));
 
   createWindow();
   createTray();
+
+  dialog.showMessageBox({
+    type: 'none',
+    title: "Apple Server",
+    message: 'The monitoring server has been activated',
+    buttons: ['OK'],
+    icon: iconPath
+  });
+});
+
+app.on('window-all-closed', () => {
+  tray.destroy();  // Cleanup tray icon when all windows are closed (macOS specific)
+  app.quit();
 });
