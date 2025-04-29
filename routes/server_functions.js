@@ -1,5 +1,19 @@
+const path = require('path');
+let dbPath;
+try {
+  const { app } = require('electron');
+  const isDev = !app || !app.isPackaged;
+
+  dbPath = isDev
+    ? path.join(path.join(__dirname, '..', 'switchesDB.db'))
+    : path.join(process.resourcesPath, 'switchesDB.db');
+} catch (e) {
+  // Fallback for non-Electron usage
+  dbPath = path.join(__dirname, 'switchesDB.db');
+}
+
 var sqlite = require('sqlite3').verbose();
-let db = new sqlite.Database('./switchesDB.db' , (err) => {
+let db = new sqlite.Database(dbPath , (err) => {
     if(err)
     {
         console.log("Error Occurred - " + err.message);

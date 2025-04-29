@@ -1,11 +1,42 @@
 {
   "name": "apple_server",
-  "version": "0.0.0",
+  "productName": "Apple Monitoring Server",
+  "author": "Yonatan",
+  "version": "1.0.0",
   "private": true,
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "server": "node app.js"
+    "server": "node app.js",
+    "build": "electron-builder --win"
+  },
+  "build": {
+  "appId": "com.ytg667.apple_server",
+  "productName": "Apple Monitoring Server",
+  "files": [
+    "main.js",
+    "app.js",
+    "preload.js",
+    "public/**/*",
+    "routes/**/*",
+    "views_secure/**/*",
+    "switchesDB.db",
+    "package.json"
+  ],
+  "extraResources": [
+    {
+      "from": "switchesDB.db",
+      "to": "switchesDB.db"
+    },
+    {
+      "from": "public/assets/apple.ico",
+      "to": "apple.ico"
+    }
+  ],
+  "win": {
+    "target": "portable",
+    "icon": "public/assets/apple.ico"
+    }
   },
   "dependencies": {
     "argon2": "^0.41.1",

@@ -57,25 +57,39 @@
   </div>
 
   <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    loadSwitchData();
+    document.addEventListener("DOMContentLoaded", () => {
+      // Fix: correct window focus and reflow
     
-    // Redirect to login after 10 minutes
-    sessionTimeout = setTimeout(function() {
-      window.location.href = '/'; // Change this to your login page URL
-    }, sessionTimeoutDuration);
-
-    // Reset session timeout on button press or search bar change
-    document.querySelectorAll('button').forEach(button => {
-      button.addEventListener('click', resetSessionTimeout);
-    });
-
-    document.querySelectorAll('input').forEach(input => {
-      input.addEventListener('input', resetSessionTimeout);});
-
+      // Force reflow to fix input focus bug
+      document.body.style.display = 'none';
+      document.body.offsetHeight; // triggers reflow
+      document.body.style.display = '';
+    
+      // Try to focus first visible input
+      const input = document.querySelector('input');
+      if (input) input.focus();
+    
+      // Load switch data
+      loadSwitchData();
+    
+      // Redirect to login after 10 minutes
+      sessionTimeout = setTimeout(function() {
+        window.location.href = '/'; // Change this to your login page URL
+      }, sessionTimeoutDuration);
+    
+      // Reset session timeout on interaction
+      document.querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', resetSessionTimeout);
+      });
+    
+      document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', resetSessionTimeout);
+      });
+    
+      // Enable draggable menus
       dragable("Menu");
       dragable("deleteMenu");
-  });
-  </script>
+    });
+    </script>
 </body>
 </html>

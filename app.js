@@ -26,11 +26,9 @@ app.use((req, res, next) => {
     next();
 });
 
-app.listen(3001, '0.0.0.0');
-
 app.set('view engine', 'ejs');
 app.use(cors({
-    origin: 'http://localhost:3001', // or wherever your frontend is served
+    origin: true, // or wherever your frontend is served
     credentials: true
 }));
 
@@ -48,7 +46,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-app.get('/admin.html', isAuthenticated, (req, res) => {
+app.get('/admin', isAuthenticated, (req, res) => {
     res.set({
         'Cache-Control': 'no-store, no-cache, must-revalidate, private',
         'Pragma': 'no-cache',
@@ -57,5 +55,6 @@ app.get('/admin.html', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'views_secure/admin.html'));
 });
 
+app.listen(3001, '0.0.0.0');
 
 module.exports = app;

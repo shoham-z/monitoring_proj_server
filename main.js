@@ -1,71 +1,62 @@
 const { app, BrowserWindow, Tray, Menu, dialog } = require('electron');
 const path = require('path');
-const childProcess = require('child_process');
+const isDev = !app.isPackaged;
 
-const appRoot = !app.isPackaged
-  ? app.getAppPath() // works in dev + production
-  : path.join(process.resourcesPath);
+const appRoot = isDev ? __dirname : path.join(process.resourcesPath);
 
-const RESOURCES_PATH = path.join(appRoot, 'public/assets');
+let iconPath;
+if (!isDev){
+  iconPath = path.join(appRoot, 'apple.ico');
+} else {
+  iconPath = path.join(appRoot, 'public/assets/apple.ico');
+}
 
-const asset = (file) => path.join(RESOURCES_PATH, file);
+let tray;
+let mainWindow;
 
-const iconPath = asset("apple.png");
-
-let tray = null;
-let mainWindow = null;
-
-function createWindow () {
+function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    show: true,
+    show: false,
     icon: iconPath,
     autoHideMenuBar: true,
     webPreferences: {
-      nodeIntegration: false, // safer, especially with server
-      contextIsolation: true
+      nodeIntegration: false,
+      contextIsolation: true,
     }
   });
+  mainWindow.loadURL('http://localhost:3001');
 
-  mainWindow.loadURL('http://localhost:3001'); // your Express server
 }
 
 function createTray() {
-    tray = new Tray(iconPath);
-  
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: 'Show App',
-        click: () => mainWindow.show()
-      },
-      {
-        label: 'Hide App',
-        click: () => mainWindow.hide()
-      },
-      { type: 'separator' },
-      {
-        label: 'Quit',
-        click: () => app.quit()
+  tray = new Tray(iconPath);
+
+  const contextMenu = Menu.buildFromTemplate([
+    { label: 'Show App', click: () => mainWindow.show() },
+    { label: 'Hide App', click: () => mainWindow.hide() },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        tray.destroy();
+        app.quit();
       }
-    ]);
-  
-    tray.setToolTip('Apple Monitor Server');
-    tray.setContextMenu(contextMenu);
-  
-    // Optional: Double-click to toggle
-    tray.on('double-click', () => {
-      if (mainWindow.isVisible()) {
-        mainWindow.hide();
-      } else {
-        mainWindow.show();
-      }
-    });
-  }
+    }
+  ]);
+
+  tray.setToolTip('Apple Monitor Server');
+  tray.setContextMenu(contextMenu);
+
+  tray.on('double-click', () => {
+    if (mainWindow.isVisible()) mainWindow.hide();
+    else mainWindow.show();
+  });
+}
 
 app.whenReady().then(async () => {
-  // Start the Express server
-  await childProcess.fork(path.join(__dirname, 'app.js'));
+  require('./app.js'); // start server inside Electron
 
   createWindow();
   createTray();
@@ -80,6 +71,6 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-  tray.destroy();  // Cleanup tray icon when all windows are closed (macOS specific)
+  tray.destroy();
   app.quit();
 });

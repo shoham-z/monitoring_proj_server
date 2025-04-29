@@ -1,10 +1,12 @@
+const url = "http://localhost:3001";
+
 // Session timeout duration (10 minutes)
 const sessionTimeoutDuration =  1000 * 60 * 10; // 10 minutes in milliseconds
 let sessionTimeout;
 
 async function loadSwitchData() {
   try {
-      const response = await fetch('/api/getAll');
+      const response = await fetch(`${url}/api/getAll`);
 
       if (!response || !response.ok) {
           throw new Error("Server offline");
@@ -80,7 +82,7 @@ function edit(event){
     oldIp: oldIp
   };
 
-  fetch('/api/edit', {
+  fetch(`${url}/api/edit`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -166,7 +168,7 @@ function deleteRow(ip, name) {
         ip: ip
       };
 
-      fetch('/api/delete', {
+      fetch(`${url}/api/delete`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -203,14 +205,14 @@ function filterTable() {
   });
 }
 
-async function userCheck() {
+async function userCheck(event) {
   event.preventDefault();
 
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
 
   try {
-      const response = await fetch(`/api/login`, {
+      const response = await fetch(`${url}/api/login`, {
           method: "POST",
           headers: {
               "Content-Type": "application/json"
@@ -222,8 +224,7 @@ async function userCheck() {
       const data = await response.json();
 
       if (data && data.username) {
-          alert("Login successful!");
-          window.location.href = "admin.html";
+          window.location.href = `${url}/admin`;
       } else {
         document.getElementById("error-message").style.display = "block";
       }
@@ -260,7 +261,7 @@ function add(event){
     name: name
   };
 
-  fetch('/api/add', {
+  fetch(`${url}/api/add`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
