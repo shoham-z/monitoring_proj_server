@@ -1,10 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser, hashPassword } = require('./server_functions'); // Import functions
+const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser, hashPassword, isAuthenticated, toggleBlock } = require('./server_functions'); // Import functions
 const argon2 = require('argon2');
 
+const connectedClients = new Set();
+
+router.use((req, res, next) => {
+    const clientIp = req.ip;
+    connectedClients.add(clientIp);
+    next();
+});
+
 // 🟢 GET all switches
-router.get('/getAll', async (req, res) => {
+router.get('/getAll', isAuthenticated, async (req, res) => {
     try {
         const switches = await getSwitchAll();
         res.status(200).json(switches);
@@ -62,9 +70,9 @@ router.delete('/delete', async (req, res) => {
 
 // 🟠 EDIT a switch (PUT)
 router.put('/edit', async (req, res) => {
-    const { ip, name, oldIp } = req.body;
+    const { ip, name, id } = req.body;
     try {
-        const result = await editSwitch(oldIp, ip, name);  
+        const result = await editSwitch(id, ip, name);  
         // Send a response back to the client
         if (result?.error){res.status(409).json(result);}
         else {res.status(200).json({message: `Edited Successfully!`});}
@@ -95,4 +103,26 @@ router.post('/login', async (req, res) => {
     }
 });
 
+router.get('/clients', isAuthenticated, (req, res) => {
+    res.json(Array.from(connectedClients));
+});
+
+router.post('/block', async (req, res) => {
+    const { isBlocked, clientIp } = req.body;
+    try {
+        await toggleBlock(isBlocked, clientIp);
+        res.status(200).json(null);
+    } catch {
+        console.error(`Error blocking ip: ${clientIp}`);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+router.get('/getIP', (req, res) => {
+    const forwarded = req.headers['x-forwarded-for'];
+    const ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress;
+    res.json({ ip });
+});
+
 module.exports = router;
+

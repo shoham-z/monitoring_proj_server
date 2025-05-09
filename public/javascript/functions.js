@@ -1,4 +1,19 @@
-const url = "http://localhost:3001";
+const url = window.location.origin;
+let userIP = "";
+async function fetchUserIP() {
+  try {
+    const res = await fetch(`${url}/api/getIP`);
+    const data = await res.json();
+    return data.ip; // ✅ Return the IP
+  } catch (err) {
+    console.error("Failed to fetch user IP:", err);
+    return null; // Return something to avoid undefined crashes
+  }
+}
+fetchUserIP().then(ip => {
+  userIP = ip;
+  console.log("User IP after fetch:", userIP);
+});
 
 // Session timeout duration (10 minutes)
 const sessionTimeoutDuration =  1000 * 60 * 10; // 10 minutes in milliseconds
@@ -8,9 +23,18 @@ async function loadSwitchData() {
   try {
       const response = await fetch(`${url}/api/getAll`);
 
-      if (!response || !response.ok) {
-          throw new Error("Server offline");
+      if (response.status === 401) {
+        // Session expired
+        sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
+        window.location.href = '/'; // Redirect to login page
+        return;
+      } else if (response.status === 403){
+        sessionStorage.setItem("errorMessage", "Your IP is blocked");
+        window.location.href = '/'; // Redirect to login page
+        return;
       }
+  
+      if (!response.ok) {throw new Error("Server error");}
 
       const switches = await response.json();
 
@@ -23,8 +47,8 @@ async function loadSwitchData() {
               <td>${row.ip}</td>
               <td>${row.name}</td>
               <td style="white-space: nowrap;">
-                  <button id="edit ${row.ip}"class="edit-btn" onclick="setMenu('${"edit"}', '${row.ip}', '${row.name}')">Edit</button>
-                  <button id="add ${row.ip}"class="delete-btn" onclick="deleteRow('${row.ip}', '${row.name}')">Delete</button>
+                  <button id="edit ${row.ip}"class="green-btn" onclick="setMenu('${"edit"}', '${row.ip}', '${row.name}', ${row.id})">Edit</button>
+                  <button id="add ${row.ip}"class="red-btn" onclick="deleteRow('${row.ip}', '${row.name}')">Delete</button>
               </td>
           `;
           tableBody.appendChild(tr);
@@ -60,13 +84,13 @@ function edit(event){
   const nameElement = document.getElementById("Name");
   var ip = ipElement.value;
   var name = nameElement.value;
-  const oldIp = document.getElementById("oldIp").value;
+  const id = document.getElementById("menuId").value;
 
   if (!ip && !name) {
     errorText("Please fill out at least one field\n (IP Address or Name).");
     return;
   } else if (!ip && name){
-    ip = oldIp;
+    ip = ipElement.placeholder;
   } else if (ip && !name){
     name = nameElement.placeholder;
   }
@@ -79,7 +103,7 @@ function edit(event){
   const formData = {
     ip: ip,
     name: name,
-    oldIp: oldIp
+    id: id
   };
 
   fetch(`${url}/api/edit`, {
@@ -89,7 +113,19 @@ function edit(event){
     },
     body: JSON.stringify(formData)
   })
-  .then(response => response.json())
+  .then(response => {
+    if (response.status === 401) {
+      // Session expired
+      sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
+      window.location.href = '/'; // Redirect to login page
+      return;
+    } else if (response.status === 403){
+      sessionStorage.setItem("errorMessage", "Your IP is blocked");
+      window.location.href = '/'; // Redirect to login page
+      return;
+    }
+    response.json();
+  })
   .then(async data => {
     if (!data?.error){
       alert("Edited Successfully!");
@@ -102,11 +138,10 @@ function edit(event){
   });
 }
 
-function errorText(text){
-  const element = document.getElementById("invalid-input");
+function errorText(text, elementID = "invalid-input"){
+  const element = document.getElementById(elementID);
   element.textContent = text;
   element.style.display = "block";
-  alert(text.replace(/\n/g, ' '));
 }
 
 function toggleMenu(ID, close) {
@@ -129,7 +164,7 @@ function toggleMenu(ID, close) {
   }
 }
 
-function setMenu(type, ip, name) {
+function setMenu(type, ip, name, id) {
 
     const submit = document.getElementById("submit");
 
@@ -141,7 +176,7 @@ function setMenu(type, ip, name) {
     const h2 = document.getElementById("MenuH2");
 
     if (type === "edit"){
-      document.getElementById("oldIp").value = ip;
+      document.getElementById("menuId").value = id;
       ipElement.placeholder = ip;
       nameElement.placeholder = name;
       h2.textContent = "Edit Menu";
@@ -175,10 +210,23 @@ function deleteRow(ip, name) {
         },
         body: JSON.stringify(formData)
       })
-      .then(response => response.json())
+      .then(response => {
+        if (response.status === 401) {
+          // Session expired
+          sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
+          window.location.href = '/'; // Redirect to login page
+          return;
+        } else if (response.status === 403){
+          sessionStorage.setItem("errorMessage", "Your IP is blocked");
+          window.location.href = '/'; // Redirect to login page
+          return;
+        }
+        response.json();
+      })
       .then(data => {
         alert("Deleted Successfully!");
-        window.location.reload();
+        loadSwitchData();
+        filterTable();
       })
       .catch(error => {
         console.error('Error during row deletion:', error);
@@ -221,10 +269,15 @@ async function userCheck(event) {
           credentials: "include"
       });
 
+      if (response.status === 403){
+        errorText("your IP is blocked", "error-message");
+        return;
+      }
+
       const data = await response.json();
 
       if (data && data.username) {
-          window.location.href = `${url}/admin`;
+          window.location.href = `${url}/switches`;
       } else {
         document.getElementById("error-message").style.display = "block";
       }
@@ -268,7 +321,19 @@ function add(event){
     },
     body: JSON.stringify(formData)
   })
-  .then(response => response.json())
+  .then(response => {
+    if (response.status === 401) {
+      // Session expired
+      sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
+      window.location.href = '/'; // Redirect to login page
+      return;
+    } else if (response.status === 403){
+      sessionStorage.setItem("errorMessage", "Your IP is blocked");
+      window.location.href = '/'; // Redirect to login page
+      return;
+    }
+    response.json();
+  })
   .then(async data => {
     if (!data?.error){
       alert("Added Successfully!");
@@ -308,3 +373,133 @@ function dragable(menuID){
     document.addEventListener("mouseup", up);
   };
 }
+
+function toggleBlockMenu(clientIp, name) {
+  // ✅ Prevent user from blocking themselves
+  if (clientIp === userIP) {
+    alert("You cannot block yourself.");
+    return;
+  }
+
+  const menu = document.getElementById("blockMenu");
+  const title = document.getElementById("blockH1");
+  title.textContent = `Name: ${name} \n IP: ${clientIp}`;
+
+  menu.style.display = "block";
+  menu.style.position = "fixed";
+  menu.style.top = "50%";
+  menu.style.left = "50%";
+  menu.style.transform = "translate(-50%, -50%)";
+
+  const confirmButton = document.getElementById('confirmBlock');
+  confirmButton.onclick = async function () {
+    const isBlocked = block.has(clientIp);
+
+    try {
+      const response = await fetch(`${url}/api/block`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ isBlocked, clientIp }),
+      });
+
+      if (response.status === 401) {
+        sessionStorage.setItem("errorMessage", "Your session has expired.\nPlease log in again.");
+        window.location.href = '/';
+        return;
+      } else if (response.status === 403) {
+        sessionStorage.setItem("errorMessage", "Your IP is blocked.");
+        window.location.href = '/';
+        return;
+      }
+
+      const button = document.getElementById(`block ${clientIp}`);
+      if (!isBlocked) {
+        button.className = "green-btn";
+        button.textContent = "Unblock";
+        block.add(clientIp);
+      } else {
+        button.className = "red-btn";
+        button.textContent = "Block";
+        block.delete(clientIp);
+      }
+
+      menu.style.display = "none";
+    } catch (error) {
+      console.error("Error during block/unblock request:", error);
+      errorText("Error blocking the client.\nPlease try again.");
+    }
+  };
+
+  document.getElementById("cancelBlock").onclick = function () {
+    menu.style.display = "none";
+  };
+}
+
+async function fetchClients() {
+  try {
+    const res = await fetch(`${url}/api/clients`);
+
+    if (res.status === 401) {
+      sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
+      window.location.href = '/';
+      return;
+    } else if (res.status === 403) {
+      sessionStorage.setItem("errorMessage", "Your IP is blocked");
+      window.location.href = '/';
+      return;
+    }
+
+    const clients = await res.json();
+    const tableBody = document.getElementById('table-body');
+    tableBody.innerHTML = '';
+
+    clients.forEach(client => {
+      const tr = document.createElement("tr");
+
+      const isSelf = client === userIP;
+
+      tr.innerHTML = `
+        <td>${client}</td>
+        <td>
+          <button id="block ${client}" class="red-btn" ${isSelf ? "disabled title='Cannot block yourself'" : `onclick="toggleBlockMenu('${client}')"`}>
+            Block
+          </button>
+        </td>
+      `;
+
+      tableBody.appendChild(tr);
+    });
+
+    setTimeout(fetchClients, 30_000);
+  } catch (error) {
+    console.error("Error fetching clients:", error);
+  }
+}
+
+
+document.addEventListener("DOMContentLoaded", function () {
+  switch (window.location.pathname){
+    case "/": {
+      const sessionError = sessionStorage.getItem("errorMessage");
+      if (sessionError) {
+        errorText(sessionError, "error-message");
+        sessionStorage.removeItem("errorMessage");
+      }
+      break;
+    }
+    case "/switches": {
+      // Load switch data
+      loadSwitchData();
+
+      // Enable draggable menus
+      dragable("Menu");
+      dragable("deleteMenu");
+      break;
+    }
+    case "/clients": {
+      fetchClients();
+    }
+  }
+});

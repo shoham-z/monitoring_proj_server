@@ -1,7 +1,7 @@
 {
   "name": "apple_server",
   "productName": "Apple Monitoring Server",
-  "author": "Yonatan",
+  "author": "Yonatan Heled",
   "version": "1.0.0",
   "private": true,
   "main": "main.js",
@@ -16,7 +16,6 @@
   "files": [
     "main.js",
     "app.js",
-    "preload.js",
     "public/**/*",
     "routes/**/*",
     "views_secure/**/*",

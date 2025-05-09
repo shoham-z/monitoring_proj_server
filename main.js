@@ -1,7 +1,7 @@
 const { app, BrowserWindow, Tray, Menu, dialog } = require('electron');
 const path = require('path');
-const isDev = !app.isPackaged;
 
+const isDev = !app.isPackaged;
 const appRoot = isDev ? __dirname : path.join(process.resourcesPath);
 
 let iconPath;
@@ -13,6 +13,8 @@ if (!isDev){
 
 let tray;
 let mainWindow;
+
+let quit = false;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -28,6 +30,15 @@ function createWindow() {
   });
   mainWindow.loadURL('http://localhost:3001');
 
+  mainWindow.on('close', (event) => {
+    if (quit){
+      tray.destroy();
+      app.quit();
+    } else {
+      event.preventDefault();
+      mainWindow.hide();
+    }
+  });
 }
 
 function createTray() {
@@ -40,6 +51,7 @@ function createTray() {
     {
       label: 'Quit',
       click: () => {
+        quit = true;
         tray.destroy();
         app.quit();
       }
@@ -70,7 +82,6 @@ app.whenReady().then(async () => {
   });
 });
 
-app.on('window-all-closed', () => {
-  tray.destroy();
-  app.quit();
+app.on('window-all-closed', (event) => {
+  event.preventDefault();
 });

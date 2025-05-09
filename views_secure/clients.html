@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Apple</title>
+  <link rel="stylesheet" href="./stylesheets/style.css">
+  <link rel="icon" type="image/png" href="./assets/apple.png">
+  <script src="./javascript/functions.js"></script>
+</head>
+<body class="clients-page">
+  <h1>Connected Clients</h1>
+  
+  <!-- Table container with scroll functionality -->
+  <div id="table-container">
+    <button class="purple-btn" onclick="location.href='/switches'">Switches</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>IP Address</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <!-- Dynamic data will be inserted here -->
+      </tbody>
+    </table>
+  </div>
+
+<div id="blockMenu" class="popup">
+  <div class="popup-content">
+    <div id="drag-handle"></div>
+      <p style="color:crimson;">Are you sure you want to block this IP?</p>
+      <h3 class="closed" id="blockH1" style="white-space: pre-line;"></h3>
+      <button class="red-btn" id="confirmBlock">Yes, block</button>
+      <button class="gray-btn" id="cancelBlock">Cancel</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -5,11 +5,11 @@ try {
   const isDev = !app || !app.isPackaged;
 
   dbPath = isDev
-    ? path.join(path.join(__dirname, '..', 'switchesDB.db'))
-    : path.join(process.resourcesPath, 'switchesDB.db');
+    ? path.join(path.join(__dirname, '..', 'database.db'))
+    : path.join(process.resourcesPath, 'database.db');
 } catch (e) {
   // Fallback for non-Electron usage
-  dbPath = path.join(__dirname, 'switchesDB.db');
+  dbPath = path.join(__dirname, 'database.db');
 }
 
 var sqlite = require('sqlite3').verbose();
@@ -51,25 +51,19 @@ async function deleteSwitch(ip){
   });
 }
 
-async function editSwitch(oldIp, newIp, name){
-  if (oldIp !== newIp){
-    const row = await getSwitch(newIp);
-    if (row){return {error: 'IP and name must be unique'};}
-    await deleteSwitch(oldIp);
-    await addSwitch(newIp, name);
-  } else {
-    return new Promise((resolve, reject) => {
-      db.run(`UPDATE switches SET name = "${name}" WHERE ip = "${oldIp}"`, function (err) {
-        if (err){
-          if (err.message.includes("UNIQUE")){reject({error: 'IP and name must be unique'});}
-          else {reject(err);}
-        } else {
-          resolve();
-        }
-      });
+async function editSwitch(id, ip, name){
+  return new Promise((resolve, reject) => {
+    db.run(`UPDATE switches SET name = "${name}", ip = "${ip}" WHERE id = ${id}`, function (err) {
+      if (err){
+        if (err.message.includes("UNIQUE")){reject({error: 'IP and name must be unique'});}
+        else {reject(err);}
+      } else {
+        resolve();
+      }
     });
-  }
+  });
 }
+
 
 async function getSwitch(ip){
     return new Promise((resolve, reject) => {
@@ -109,9 +103,51 @@ async function getUser(username) {
 
 function isAuthenticated(req, res, next) {
   if (req.session && req.session.user) {
-    next();
+    return next();
+  }
+
+  // If it's an API request, return 401 instead of redirect
+  if (req.originalUrl.startsWith('/api')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Otherwise, redirect to login page
+  res.redirect('/');
+}
+
+async function isBlocked(ip){
+  return new Promise((resolve, reject) => {
+    db.get(`SELECT * FROM blocked WHERE ip = "${ip}"`, (err, row) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(row);
+      }
+    });
+  });
+}
+
+async function toggleBlock(isBlocked, clientIp) {
+  if (isBlocked){
+    return new Promise((resolve, reject) => {
+      db.run(`DELETE FROM blocked WHERE ip = (?)`, [clientIp], function (err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
   } else {
-    res.redirect('/');
+    return new Promise((resolve, reject) => {
+      db.run(`INSERT INTO blocked (ip) VALUES (?)`, [clientIp], function (err) {
+        if (err){
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
   }
 }
 
@@ -133,5 +169,7 @@ module.exports = {
     getSwitchAll,
     getUser,
     isAuthenticated,
+    isBlocked,
+    toggleBlock,
     hashPassword
 }
