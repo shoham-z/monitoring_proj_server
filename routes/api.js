@@ -16,7 +16,7 @@ router.use((req, res, next) => {
 });
 
 // 🟢 GET all switches
-router.get('/getAll', isAuthenticated, async (req, res) => {
+router.get('/getAll', async (req, res) => {
     try {
         const switches = await getSwitchAll(); // Fetch all switches from the database
         res.status(200).json(switches); // Return the switches as JSON response
@@ -113,7 +113,7 @@ router.post('/login', async (req, res) => {
 });
 
 // GET /clients: Returns a list of connected clients based on IP address
-router.get('/clients', isAuthenticated, (req, res) => {
+router.get('/clients', (req, res) => {
     res.json(Array.from(connectedClients)); // Return the set of connected client IPs as an array
 });
 
