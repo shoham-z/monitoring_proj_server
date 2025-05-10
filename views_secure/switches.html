@@ -39,6 +39,7 @@
         <tr>
           <th>IP Address</th>
           <th>Name</th>
+          <th>Type</th>
           <th><button class="blue-btn" onclick="setMenu('add')">Add</button></th>
         </tr>
       </thead>
@@ -65,9 +66,15 @@
       <h2 id="MenuH2"></h2>
       <form id="Form">
         <label for="IP Address">IP Address:</label><br>
-        <input type="text" id="IP Address" name="IP Address"><br><br>
+        <input type="text" id="IP Address" name="IP Address" autocomplete="off"><br><br>
         <label for="Name">Name:</label><br>
         <input type="text" id="Name" name="Name" autocomplete="off"><br><br>
+
+        <label for="DeviceType">Device Type:</label><br>
+          <select id="DeviceType" name="DeviceType" required>
+        <option value="switch">Switch</option>
+        <option value="encryptor">Encryptor</option>
+          </select><br><br>
         <input type="hidden" id="menuId" name="MenuId"/>
         <button type="submit" id="submit" style="width: 45%;">Submit</button>
         <button type="button" style="width: 45%;" class="gray-btn" onclick="toggleMenu('Menu', true)">Close</button>

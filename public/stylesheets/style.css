@@ -1,73 +1,69 @@
 /* === RESET & BASE === */
+/* Remove default margin and ensure full height for layout */
 html, body {
-  height: 100%;
-  margin: 0;
-  font-family: 'Inter', sans-serif;
-  overflow: hidden;
+  height: 100%;                             /* Full viewport height for flex centering */
+  margin: 0;                                /* Remove default browser margin */
+  font-family: 'Inter', sans-serif;        /* Set modern sans-serif font */
+  overflow: hidden;                        /* Prevent scrolling (useful for modals or locked layout) */
 }
-
+/* Center page contents and apply background image */
 body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: url('../assets/Background.png') center/cover no-repeat;
+  display: flex;                            /* Enable flex layout */
+  justify-content: center;                 /* Horizontally center content */
+  align-items: center;                     /* Vertically center content */
+  background: url('../assets/Background.png') center/cover no-repeat; /* Background image fills and centers */
 }
 
 /* === TYPOGRAPHY === */
+/* Add outline to headings and closed banner text for better contrast */
 h1, .closed {
   color: white;
-  text-shadow:
-    -2px -2px 0 black,
-     2px -2px 0 black,
-    -2px  2px 0 black,
-     2px  2px 0 black;
+  text-shadow: -2px -2px 0 black, 2px -2px 0 black, -2px 2px 0 black, 2px 2px 0 black; /* Outline with black for visibility */
 }
+/* Override outline color for the .closed element */
 .closed {
-  text-shadow:
-    -2px -2px 0 crimson,
-     2px -2px 0 crimson,
-    -2px  2px 0 crimson,
-     2px  2px 0 crimson;
+  text-shadow: -2px -2px 0 crimson, 2px -2px 0 crimson, -2px 2px 0 crimson, 2px 2px 0 crimson; /* Crimson outline for emphasis */
 }
 
 /* === TABLE === */
+/* Wrapper to make table scrollable if too tall */
 #table-container {
-  max-height: 550px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  width: 650px;
-  margin: 0 auto;
-  position: relative;
+  max-height: 550px;                       /* Limit height before vertical scrolling */
+  overflow-y: auto;                        /* Allow vertical scroll */
+  overflow-x: hidden;                      /* Prevent horizontal scroll */
+  width: 650px;                            /* Fixed width for consistent layout */
+  margin: 0 auto;                          /* Center horizontally */
+  position: relative;                      /* Needed for positioning child elements if needed */
 }
-
+/* Basic table structure and appearance */
 table {
-  width: 100%;
-  border-collapse: collapse;
-  color: white;
+  width: 100%;                             /* Full width of container */
+  border-collapse: collapse;               /* Remove spacing between table cells */
+  color: white;                          /* White text on dark background */
 }
-
+/* Table cell styling */
 th, td {
-  border: 4px solid #37303d;
-  padding: 8px;
-  text-align: center;
+  border: 4px solid #37303d;             /* Thick dark border between cells */
+  padding: 8px;                            /* Inner spacing */
+  text-align: center;                      /* Center content in cells */
 }
-
+/* Sticky-style header look (z-index prep if JS is used to freeze it) */
 th {
   top: 0;
   z-index: 1;
-  background-color: #4f4559;
-  text-align: center;
+  background-color: #4f4559;             /* Slightly different dark background */
 }
-
+/* Alternating row colors for better readability */
 tr:nth-child(even) { background-color: #4f4559; }
 tr:nth-child(odd)  { background-color: #6b5e78; }
-
+/* Make the name or description column wrap instead of overflow */
 td:nth-child(2) {
-  white-space: normal;
-  word-break: break-word;
+  white-space: normal;                     /* Allow normal line wrapping */
+  word-break: break-word;                  /* Break long words if needed */
 }
 
 /* === BUTTONS === */
+/* Base style for all buttons */
 button {
   padding: 10px 16px;
   margin: 0 5px;
@@ -75,96 +71,116 @@ button {
   border-radius: 8px;
   font-size: 18px;
   font-weight: bold;
-  cursor: pointer;
-  transition: transform 0.2s ease;
+  cursor: pointer;                         /* Pointer cursor on hover */
+  transition: transform 0.2s ease;         /* Smooth scaling on hover */
 }
-
-button:hover { transform: scale(1.03); }
-button:disabled { cursor: not-allowed; }
-
-.blue-btn    { background-color: #569fcc; }
-.green-btn   { background-color: #4CAF50; }
-.red-btn { background-color: #f44336; }
-.gray-btn { background-color: #a9a9a9; }
-.purple-btn {
-  background-color: #4E2A84;
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  color: lightgray;
-  }
-
-.blue-btn:hover    { background-color: #5092bb; }
-.green-btn:hover   { background-color: #45a049; }
-.red-btn:hover { background-color: #e53935; }
-.gray-btn:hover { background-color: #808080; }
-.purple-btn:hover { background-color: #3f236a; }
-
+/* Slight scale effect when hovered */
+button:hover {
+  transform: scale(1.03);
+}
+/* Disabled button look */
+button:disabled {
+  cursor: not-allowed;                     /* Show not-allowed cursor */
+}
+/* Style for "submit" type buttons */
 button[type="submit"] {
-  background: gold;
+  background: gold;                      /* Bright standout color */
   border-radius: 5px;
 }
 button[type="submit"]:hover {
-  background: darkgoldenrod;
+  background: darkgoldenrod;             /* Darker gold on hover */
 }
 
-/* === FORMS & POPUPS === */
+/* Themed button colors */
+.blue-btn    { background-color: #569fcc; }  /* Blue for actions like "Save" */
+.green-btn   { background-color: #4CAF50; }  /* Green for confirm actions */
+.red-btn     { background-color: #f44336; }  /* Red for delete/danger */
+.gray-btn    { background-color: #a9a9a9; }  /* Gray for neutral/disabled look */
+.purple-btn  {
+  background-color: #4E2A84;             /* Purple for special actions */
+  position: fixed;                         /* Float in top-right corner */
+  top: 10px;
+  right: 10px;
+  color: lightgray;
+}
+
+/* Hover effects for themed buttons */
+.blue-btn:hover    { background-color: #5092bb; }
+.green-btn:hover   { background-color: #45a049; }
+.red-btn:hover     { background-color: #e53935; }
+.gray-btn:hover    { background-color: #808080; }
+.purple-btn:hover  { background-color: #3f236a; }
+
+/* === FORMS, INPUTS, SELECTS === */
+/* Shared input and select styling */
+input[type="text"], input[type="password"],
+select {
+  width: 100%;                             /* Fill container */
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 16px;
+  background-color: #38343c;             /* Dark background */
+  color: white;
+  border: 1px solid #555;                /* Subtle border */
+  border-radius: 6px;
+  box-sizing: border-box;                  /* Padding included in width */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+/* Focus effect for inputs and selects */
+input[type="text"]:focus, input[type="password"]:focus,
+select:focus {
+  outline: none;
+  border: 1px solid #569fcc;             /* Highlight on focus */
+}
+/* Placeholder text styling */
+input::placeholder {
+  color: #aaa;
+}
+/* Dropdown options style */
+select option {
+  background-color: #38343c;
+  color: white;
+}
+/* Hover effect for dropdown options */
+select option:hover {
+  background-color: #4f4559;
+}
+
+/* === MENU & POPUPS === */
+/* Hidden by default and centered when shown */
 #Menu, .popup {
-  display: none;
+  display: none;                           /* Hidden until triggered by JS */
   position: absolute;
   top: 50%;
   left: 50%;
   padding: 20px;
+  transform: translate(-50%, -50%);        /* Perfect center */
   border-radius: 10px;
-  transform: translate(-50%, -50%);
-  width: 300px;
 }
-
+/* Menu used for editing/adding entries */
 #Menu {
+  width: 300px;
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  color: #222;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);/* Subtle drop shadow */
+  color: #222;                              /* Dark text */
 }
-
+/* General popup style (e.g., delete confirm) */
 .popup {
   background-color: #38343c;
-  width: max-content;
+  width: max-content;                      /* Fit content width */
 }
-
+/* Inner content styling of the popup */
 .popup-content {
   background-color: #202424;
   color: white;
   padding: 20px;
   border-radius: 10px;
   text-align: center;
-  width: auto;
-  justify-content: space-between;
-}
-
-/* === INPUT FIELDS === */
-input[type="text"], input[type="password"] {
-  width: 100%;
-  padding: 10px;
-  margin: 10px 0;
-  font-size: 16px;
-  background-color: #38343c;
-  color: white;
-  border: 1px solid #555;
-  border-radius: 6px;
-  box-sizing: border-box;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-input[type="text"]:focus, input[type="password"]:focus {
-  outline: none;
-  border: 1px solid #569fcc;
-}
-
-input::placeholder {
-  color: #aaa;
+  justify-content: space-between;          /* Prepared for flex layout */
 }
 
 /* === SEARCH BAR === */
+/* Style search bar input at top of table */
 #search-bar {
   margin: 20px auto;
   width: 650px;
@@ -175,15 +191,16 @@ input::placeholder {
 }
 
 /* === LOGIN === */
+/* Container for login form */
 .login-container {
   background: #202424;
   padding: 20px;
   border-radius: 10px;
-  box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3); /* Soft glow around form */
   width: 300px;
   text-align: center;
 }
-
+/* Inputs inside login container */
 .login-container input {
   width: 90%;
   border: none;
@@ -193,23 +210,22 @@ input::placeholder {
   color: white;
 }
 
-/* === ERROR MESSAGES === */
+/* === ERROR, SCROLLBAR, LAYOUT === */
+/* Hidden error messages, shown on validation failure */
 .error-message {
   color: red;
   display: none;
-  white-space: pre-line;
+  white-space: pre-line;                   /* Preserve line breaks */
 }
-
-/* === SWITCHES PAGE === */
+/* Layout styling for different content pages */
 .switches-page, .clients-page {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-start;             /* Align from top */
   padding-top: 40px;
 }
-
-/* === SCROLLBAR === */
+/* Custom scrollbar for modern look */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -227,13 +243,15 @@ input::placeholder {
   background-color: #417da3;
 }
 
+/* === DRAG HANDLE === */
+/* Used for draggable top area (usually in Electron apps) */
 #drag-handle {
   height: 10px;
-  width: 50%;
+  width: 50%;                              /* Only middle part is draggable */
   margin: 0 auto;
   background-color: #38343c;
-  cursor: move;
+  cursor: move;                            /* Indicate draggable area */
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
-  user-select: none;
+  user-select: none;                       /* Prevent selecting text */
 }
