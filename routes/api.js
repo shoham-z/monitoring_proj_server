@@ -6,14 +6,23 @@ const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser, h
 const argon2 = require('argon2'); // Import argon2 for secure password hashing and verification
 
 // Set to track the IP addresses of connected clients
-const connectedClients = new Set();
+const connectedClients = new Map();
+const INACTIVITY_TIMEOUT = 60 * 1000; // minute
 
 // Middleware to track connected clients' IP addresses
 router.use((req, res, next) => {
     const clientIp = req.ip; // Get the IP address of the incoming request
-    connectedClients.add(clientIp); // Add the IP to the connectedClients set to track active clients
+    connectedClients.set(clientIp, Date.now()); // Add the IP and time to the connectedClients map to track active clients
     next(); // Pass the request to the next middleware or route handler
 });
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, lastSeen] of connectedClients.entries()) {
+        if (now - lastSeen > INACTIVITY_TIMEOUT) {
+            connectedClients.delete(ip); // Remove inactive IPs
+        }
+    }
+}, 30 * 1000); // Run cleanup every 1 minute
 
 // 🟢 GET all switches
 router.get('/getAll', async (req, res) => {
@@ -114,7 +123,7 @@ router.post('/login', async (req, res) => {
 
 // GET /clients: Returns a list of connected clients based on IP address
 router.get('/clients', (req, res) => {
-    res.json(Array.from(connectedClients)); // Return the set of connected client IPs as an array
+    res.json(Array.from(connectedClients.keys())); // Return the set of connected client IPs as an array
 });
 
 // POST /block: Block or unblock a client based on the provided IP

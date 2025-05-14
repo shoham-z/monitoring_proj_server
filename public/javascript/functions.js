@@ -308,7 +308,10 @@ async function fetchClients() {
 
   } catch (err) {
     console.error("Failed to fetch clients:", err);
-    document.getElementById("title").textContent = "Failed to load clients.";
+    const title = document.getElementById("title");
+    title.textContent = "The Server is offline";
+    title.className = "closed";
+    document.querySelectorAll("button:not(.cancel-btn)").forEach(btn => btn.disabled = true);
   }
 
 }
