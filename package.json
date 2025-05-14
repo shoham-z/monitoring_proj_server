@@ -19,13 +19,12 @@
     "public/**/*",
     "routes/**/*",
     "views_secure/**/*",
-    "switchesDB.db",
     "package.json"
   ],
   "extraResources": [
     {
-      "from": "switchesDB.db",
-      "to": "switchesDB.db"
+      "from": "database.db",
+      "to": "database.db"
     },
     {
       "from": "public/assets/apple.ico",

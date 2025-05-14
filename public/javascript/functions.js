@@ -62,9 +62,8 @@ async function loadSwitchData() {
       <tr>
         <td>${row.ip}</td>
         <td>${row.name}</td>
-        <td>${row.type}</td>
         <td style="white-space: nowrap;">
-          <button id="edit ${row.ip}" class="green-btn" onclick="setMenu('edit', '${row.ip}', '${row.name}', '${row.type}', ${row.id})">Edit</button>
+          <button id="edit ${row.ip}" class="green-btn" onclick="setMenu('edit', '${row.ip}', '${row.name}', ${row.id})">Edit</button>
           <button id="add ${row.ip}" class="red-btn" onclick="deleteRow('${row.ip}', '${row.name}')">Delete</button>
         </td>
       </tr>`).join("");
@@ -129,11 +128,10 @@ function edit(e) {
   const ip = ipEl.value || ipEl.placeholder;
   const name = nameEl.value || nameEl.placeholder;
   const id = document.getElementById("menuId").value;
-  const type = document.getElementById("DeviceType").value;
   // Check if at least one field is filled and if the IP is valid
   if (!ip && !name) return errorText("Please fill out at least one field\n (IP Address or Name).");
   if (!isValidIp(ip)) return errorText("Please enter a valid IP address");
-  submitForm("edit", "PUT", { id, ip, name, type }, "Edited Successfully!");
+  submitForm("edit", "PUT", { id, ip, name }, "Edited Successfully!");
 }
 
 // Function to handle adding a switch
@@ -141,11 +139,10 @@ function add(e) {
   e.preventDefault();
   const ip = document.getElementById("IP Address").value;
   const name = document.getElementById("Name").value;
-  const type = document.getElementById("DeviceType").value;
   // Check if both fields are filled and if the IP is valid
   if (!ip || !name) return errorText("Please fill out all fields.");
   if (!isValidIp(ip)) return errorText("Please enter a valid IP address");
-  submitForm("add", "POST", { ip, name, type }, "Added Successfully!");
+  submitForm("add", "POST", { ip, name }, "Added Successfully!");
 }
 
 // Function to handle deleting a switch
@@ -160,7 +157,7 @@ function deleteRow(ip, name) {
 }
 
 // Function to set up the menu for editing or adding a switch
-function setMenu(menuType, ip, name, type, id) {
+function setMenu(menuType, ip, name, id) {
   const ipEl = document.getElementById("IP Address");
   const nameEl = document.getElementById("Name");
   ipEl.value = nameEl.value = "";
@@ -170,7 +167,6 @@ function setMenu(menuType, ip, name, type, id) {
   document.getElementById("invalid-input").style.display = "none";
   document.getElementById("MenuH2").textContent = menuType === "edit" ? "Edit Menu" : "Add Menu";
   document.getElementById("submit").onclick = menuType === "edit" ? edit : add;
-  document.getElementById("DeviceType").value = type || "switch";
   toggleMenu("Menu");
 }
 
@@ -229,8 +225,7 @@ async function userCheck(e) {
       body: JSON.stringify({ username, password })
     });
     if (res.status === 403) return errorText("your IP is blocked", "error-message");
-    const data = await res.json();
-    window.location.href = data?.username ? `${url}/switches` : displayLoginError();
+    window.location.href = `/switches`
   } catch {
     document.getElementById("error-message").textContent = "Server error. Try again.";
     document.getElementById("error-message").style.display = "block";
@@ -242,11 +237,11 @@ function displayLoginError() {
   const el = document.getElementById("error-message");
   el.style.display = "block";
 }
-
 // Function to fetch and display client data
 async function fetchClients() {
   try {
     const res = await fetch(`${url}/api/clients`);
+
     // Handle session expiry or IP block
     if (res.status === 401) {
       sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
@@ -260,36 +255,123 @@ async function fetchClients() {
 
     // Parse the response and display the clients in a table
     const clients = await res.json();
-    const tableBody = document.getElementById('table-body');
+    const tableBody = document.getElementById('clients-table-body');
     tableBody.innerHTML = '';
 
     clients.forEach(client => {
       const tr = document.createElement("tr");
 
-      const isSelf = client === userIP;
+      const isDisable = client === userIP || client === "127.0.0.1";
+      const disableReason = client === userIP ? "Cannot block your own IP" : client === "127.0.0.1" ? "Cannot block hosting PC" : "";
 
       tr.innerHTML = `
         <td>${client}</td>
         <td>
-          <button id="block ${client}" class="red-btn" ${isSelf ? "disabled title='Cannot block yourself'" : `onclick="toggleBlockMenu('${client}')"`}>
+          <button id="block ${client}" class="red-btn" ${isDisable ? "disabled title='" + disableReason + "'" : ""}
+            onclick="toggleBlockMenu('block', '${client}')">
             Block
           </button>
         </td>
       `;
-
       tableBody.appendChild(tr);
     });
 
-    // Refresh the clients list every 30 seconds
-    setTimeout(fetchClients, 30_000);
-  } catch (error) {
-    // If an error occurs, display an offline message and disable buttons
-    const title = document.getElementById("title");
-    title.className = "closed";
-    title.textContent = "The Server Is Offline";
-    document.querySelectorAll("button:not(.cancel-btn)").forEach(btn => btn.disabled = true);
+    const response = await fetch(`${url}/api/getBlockedAll`);
+    // Handle session expiry or IP block
+    if (response.status === 401) {
+      sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
+      window.location.href = '/';
+      return;
+    } else if (response.status === 403) {
+      sessionStorage.setItem("errorMessage", "Your IP is blocked");
+      window.location.href = '/';
+      return;
+    }
+    const blockedList = await response.json();
+    const tBody = document.getElementById('blocked-table-body');
+    tBody.innerHTML = '';
+
+    blockedList.forEach(row => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${row.ip}</td>
+        <td>
+          <button id="unblock ${row.ip}" class="green-btn"
+            onclick="toggleBlockMenu('unblock', '${row.ip}')">
+            Unblock
+          </button>
+        </td>
+      `;
+      tBody.appendChild(tr);
+    })
+    setTimeout(() => fetchClients(), 30_000); // Reload every 30s
+
+  } catch (err) {
+    console.error("Failed to fetch clients:", err);
+    document.getElementById("title").textContent = "Failed to load clients.";
   }
+
 }
+
+async function toggleBlockMenu(type, clientIp, name) {
+  if (clientIp === userIP) {
+    alert("You cannot block yourself.");
+    return;
+  }
+
+  const menu = document.getElementById("blockMenu");
+  const title = document.getElementById("blockH1");
+  const confirmButton = document.getElementById("confirmBlock");
+  const desc = document.getElementById("blockDesc");
+
+  // Set menu title and button text based on the action type
+  title.textContent = `${type === "block" ? "Block" : "Unblock"} IP: ${clientIp}`;
+  confirmButton.textContent = type === "block" ? "Confirm Block" : "Confirm Unblock";
+  desc.textContent = type === "block" ? "Are you sure you want to block this IP?" : "Are you sure you want to unblock this IP?"
+
+  // Show the menu centered
+  menu.style.display = "block";
+  menu.style.position = "fixed";
+  menu.style.top = "50%";
+  menu.style.left = "50%";
+  menu.style.transform = "translate(-50%, -50%)";
+
+  // Set the confirm button handler
+  confirmButton.onclick = async function () {
+    const isBlocked = type === "unblock"; // We're unblocking if type is "unblock"
+
+    try {
+      const response = await fetch(`${url}/api/block`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ isBlocked, clientIp }),
+      });
+
+      if (response.status === 401) {
+        sessionStorage.setItem("errorMessage", "Your session has expired.\nPlease log in again.");
+        window.location.href = '/';
+        return;
+      } else if (response.status === 403) {
+        sessionStorage.setItem("errorMessage", "Your IP is blocked");
+        window.location.href = '/';
+        return;
+      }
+      alert(`ip was ${type}ed successfully`);
+
+      // Reload the client list
+      await fetchClients();
+      // Hide the block menu after action
+      menu.style.display = "none";
+
+    } catch (err) {
+      console.error(`Failed to ${type} IP:`, err);
+      alert(`Failed to ${type} IP. Please try again.`);
+    }
+  };
+}
+
 
 // Event listener to handle different pages once the DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {

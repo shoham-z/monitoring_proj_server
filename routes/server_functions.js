@@ -35,7 +35,7 @@ const argon2 = require('argon2');
 // Function to add a new switch to the database
 async function addSwitch(ip, name, type) {
   return new Promise((resolve, reject) => {
-    db.run(`INSERT INTO switches (ip, name, type) VALUES (?, ?, ?)`, [ip, name, type], function (err) {
+    db.run(`INSERT INTO switches (ip, name) VALUES (?, ?)`, [ip, name], function (err) {
       if (err) {
         // Handle specific error for unique constraint violation
         if (err.message.includes("UNIQUE")) {
@@ -64,9 +64,9 @@ async function deleteSwitch(ip) {
 }
 
 // Function to edit an existing switch in the database by its ID
-async function editSwitch(id, ip, name, type) {
+async function editSwitch(id, ip, name) {
   return new Promise((resolve, reject) => {
-    db.run(`UPDATE switches SET name = "${name}", ip = "${ip}", type = "${type}" WHERE id = ${id}`, function (err) {
+    db.run(`UPDATE switches SET name = "${name}", ip = "${ip}" WHERE id = ${id}`, function (err) {
       if (err) {
         // Handle specific error for unique constraint violation
         if (err.message.includes("UNIQUE")) {
@@ -175,6 +175,19 @@ async function toggleBlock(isBlocked, clientIp) {
   }
 }
 
+// Function to get all blocked users from the database
+async function getBlockAll() {
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT * FROM blocked`, (err, row) => {
+          if (err) {
+            reject(err); // Reject with error if fetching blocked users fails
+          } else {
+            resolve(row); // Resolve with all blocked users if successful
+          }
+        });
+      });
+}
+
 // Function to hash a password using argon2
 async function hashPassword(password) {
   try {
@@ -197,5 +210,6 @@ module.exports = {
     isAuthenticated,
     isBlocked,
     toggleBlock,
+    getBlockAll,
     hashPassword
 }

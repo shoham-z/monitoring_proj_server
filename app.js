@@ -49,7 +49,7 @@ app.use(cookieParser());
 // Serve static files (e.g., images, stylesheets) from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public'), { index: 'login.html' }));
 
-// API-specific middleware to check if the client's IP is blocked
+// // API-specific middleware to check if the client's IP is blocked
 app.use('/api', async (req, res, next) => {
     const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;  // Get the client IP
     const row = await isBlocked(ip); // Check if the IP is blocked

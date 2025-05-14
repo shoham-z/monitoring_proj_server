@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 // Import specific functions from 'server_functions.js' for handling switch data, user authentication, etc.
-const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser, hashPassword, isAuthenticated, toggleBlock } = require('./server_functions'); 
+const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser, hashPassword, isAuthenticated, toggleBlock, getBlockAll } = require('./server_functions'); 
 const argon2 = require('argon2'); // Import argon2 for secure password hashing and verification
 
 // Set to track the IP addresses of connected clients
@@ -42,13 +42,13 @@ router.get('/get', async (req, res) => {
 
 // 🟡 ADD a switch (POST)
 router.post('/add', async (req, res) => {
-    const { ip, name, type } = req.body; // Destructure necessary data from the request body
+    const { ip, name } = req.body; // Destructure necessary data from the request body
     if (!ip || !name) {
         return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missing
     }
     
     try {
-        await addSwitch(ip, name, type); // Add the new switch to the database
+        await addSwitch(ip, name); // Add the new switch to the database
         res.status(201).json({ message: "Switch added successfully" }); // Return a success message
     } catch (err) {
         if (err?.error) {
@@ -74,9 +74,9 @@ router.delete('/delete', async (req, res) => {
 
 // 🟠 EDIT a switch (PUT)
 router.put('/edit', async (req, res) => {
-    const { id, ip, name, type } = req.body; // Extract data to edit the switch
+    const { id, ip, name } = req.body; // Extract data to edit the switch
     try {
-        const result = await editSwitch(id, ip, name, type); // Call the function to update the switch in the database
+        const result = await editSwitch(id, ip, name); // Call the function to update the switch in the database
         if (result?.error) {
             res.status(409).json(result); // Return 409 if there is a conflict (e.g., duplicate data)
         } else {
@@ -122,6 +122,7 @@ router.post('/block', async (req, res) => {
     const { isBlocked, clientIp } = req.body; // Extract blocking status and IP address from the request body
     try {
         await toggleBlock(isBlocked, clientIp); // Toggle the block status of the client IP
+        if (!isBlocked){connectedClients.delete(clientIp)}
         res.status(200).json(null); // Return a success response if the block action is completed
     } catch {
         console.error(`Error blocking ip: ${clientIp}`); // Log any errors if blocking fails
@@ -134,6 +135,17 @@ router.get('/getIP', (req, res) => {
     const forwarded = req.headers['x-forwarded-for']; // Check for forwarded IP address
     const ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress; // Get the client's IP
     res.json({ ip }); // Return the client's IP address as JSON
+});
+
+// 🟢 GET all blocked users
+router.get('/getBlockedAll', async (req, res) => {
+    try {
+        const switches = await getBlockAll(); // Fetch all blocked users from the database
+        res.status(200).json(switches); // Return the blocked users as JSON response
+    } catch (error) {
+        console.error("Error fetching blocked users:", error); // Log any errors
+        res.status(500).json({ error: "Internal Server Error" }); // Return a 500 status if an error occurs
+    }
 });
 
 // Export the router to be used in the main app

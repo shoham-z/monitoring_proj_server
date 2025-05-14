@@ -111,10 +111,9 @@ button[type="submit"]:hover {
 .gray-btn:hover    { background-color: #808080; }
 .purple-btn:hover  { background-color: #3f236a; }
 
-/* === FORMS, INPUTS, SELECTS === */
-/* Shared input and select styling */
-input[type="text"], input[type="password"],
-select {
+/* === FORMS, INPUTS === */
+/* Shared input styling */
+input[type="text"], input[type="password"] {
   width: 100%;                             /* Fill container */
   padding: 10px;
   margin: 10px 0;
@@ -126,24 +125,14 @@ select {
   box-sizing: border-box;                  /* Padding included in width */
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-/* Focus effect for inputs and selects */
-input[type="text"]:focus, input[type="password"]:focus,
-select:focus {
+/* Focus effect for inputs */
+input[type="text"]:focus, input[type="password"]:focus {
   outline: none;
   border: 1px solid #569fcc;             /* Highlight on focus */
 }
 /* Placeholder text styling */
 input::placeholder {
   color: #aaa;
-}
-/* Dropdown options style */
-select option {
-  background-color: #38343c;
-  color: white;
-}
-/* Hover effect for dropdown options */
-select option:hover {
-  background-color: #4f4559;
 }
 
 /* === MENU & POPUPS === */
@@ -244,7 +233,7 @@ select option:hover {
 }
 
 /* === DRAG HANDLE === */
-/* Used for draggable top area (usually in Electron apps) */
+/* Used for draggable top area */
 #drag-handle {
   height: 10px;
   width: 50%;                              /* Only middle part is draggable */
