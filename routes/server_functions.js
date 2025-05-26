@@ -29,6 +29,14 @@ let db = new sqlite.Database(dbPath, (err) => {
     }
 });
 
+db.run("DELETE FROM sessions WHERE CAST(strftime('%s','now') AS INTEGER) > CAST(expired AS INTEGER)", (err) => {
+    if (err) {
+        console.error('Failed to delete expired sessions on startup:', err);
+    } else {
+        console.log('Expired sessions deleted on startup');
+    }
+});
+
 // Import argon2 for secure password hashing and verification
 const argon2 = require('argon2');
 
@@ -120,21 +128,6 @@ async function getUser(username) {
   });
 }
 
-// Middleware to check if the user is authenticated (logged in)
-function isAuthenticated(req, res, next) {
-  if (req.session && req.session.user) {
-    return next(); // Allow access if the user is authenticated
-  }
-
-  // If it's an API request, return 401 Unauthorized instead of redirecting
-  if (req.originalUrl.startsWith('/api')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  // Redirect to the login page if the user is not authenticated
-  res.redirect('/');
-}
-
 // Function to check if an IP address is blocked
 async function isBlocked(ip) {
   return new Promise((resolve, reject) => {
@@ -188,6 +181,29 @@ async function getBlockAll() {
       });
 }
 
+// Function to get all sessions from the database
+async function getSessionAll() {
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT * FROM sessions`, (err, row) => {
+          if (err) {
+            reject(err); // Reject with error if fetching switches fails
+          } else {
+            resolve(row); // Resolve with all switches if successful
+          }
+        });
+      });
+}
+
+function doesSessionExist(rows, username){
+  for (const row of rows){
+    const session = JSON.parse(row.sess);
+    if (session.user === username) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Function to hash a password using argon2
 async function hashPassword(password) {
   try {
@@ -207,9 +223,10 @@ module.exports = {
     getSwitch,
     getSwitchAll,
     getUser,
-    isAuthenticated,
     isBlocked,
     toggleBlock,
     getBlockAll,
+    getSessionAll,
+    doesSessionExist,
     hashPassword
 }

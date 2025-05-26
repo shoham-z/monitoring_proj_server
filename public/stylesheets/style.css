@@ -186,7 +186,7 @@ input::placeholder {
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.3); /* Soft glow around form */
-  width: 300px;
+  width: 315px;
   text-align: center;
 }
 /* Inputs inside login container */

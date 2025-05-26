@@ -46,10 +46,22 @@ async function loadSwitchData() {
   try {
     const res = await fetch(`${url}/api/getAll`);
     // If the user is not authorized or forbidden, redirect to login page
-    if ([401, 403].includes(res.status)) {
-      sessionStorage.setItem("errorMessage", res.status === 401 ? "Your session has expired.\n Please log in again." : "Your IP is blocked");
-      window.location.href = '/';
-      return;
+    switch (res.status){
+      case 401: {
+        sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
+        window.location.href = '/';
+        return;
+      }
+      case 403: {
+        sessionStorage.setItem("errorMessage", "Your IP is blocked");
+        window.location.href = '/';
+        return;
+      }
+      case 409: {
+        sessionStorage.setItem("errorMessage", "User already logged in on another device");
+        window.location.href = '/';
+        return;
+      }
     }
     // If the response is not OK, throw an error
     if (!res.ok) throw new Error("Server error");
@@ -98,10 +110,22 @@ async function submitForm(request, method, body, successMessage) {
       body: JSON.stringify(body)
     });
     // Handle session expiry or IP block
-    if ([401, 403].includes(res.status)) {
-      sessionStorage.setItem("errorMessage", res.status === 401 ? "Your session has expired.\n Please log in again." : "Your IP is blocked");
-      window.location.href = '/';
-      return;
+    switch (res.status){
+      case 401: {
+        sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
+        window.location.href = '/';
+        return;
+      }
+      case 403: {
+        sessionStorage.setItem("errorMessage", "Your IP is blocked");
+        window.location.href = '/';
+        return;
+      }
+      case 409: {
+        sessionStorage.setItem("errorMessage", "User already logged in on another device");
+        window.location.href = '/';
+        return;
+      }
     }
     const data = await res.json();
     // If no error in the response, show success message and reload switch data
@@ -224,18 +248,13 @@ async function userCheck(e) {
       credentials: "include",
       body: JSON.stringify({ username, password })
     });
-    if (res.status === 403) return errorText("your IP is blocked", "error-message");
+    if (res.status === 403) {return errorText("your IP is blocked", "error-message");}
+    else if (res.status === 409) {return errorText("User already logged in on another device", "error-message");}
     window.location.href = `/switches`
   } catch {
     document.getElementById("error-message").textContent = "Server error. Try again.";
     document.getElementById("error-message").style.display = "block";
   }
-}
-
-// Function to display login error message
-function displayLoginError() {
-  const el = document.getElementById("error-message");
-  el.style.display = "block";
 }
 // Function to fetch and display client data
 async function fetchClients() {
@@ -243,14 +262,22 @@ async function fetchClients() {
     const res = await fetch(`${url}/api/clients`);
 
     // Handle session expiry or IP block
-    if (res.status === 401) {
-      sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
-      window.location.href = '/';
-      return;
-    } else if (res.status === 403) {
-      sessionStorage.setItem("errorMessage", "Your IP is blocked");
-      window.location.href = '/';
-      return;
+    switch (res.status){
+      case 401: {
+        sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
+        window.location.href = '/';
+        return;
+      }
+      case 403: {
+        sessionStorage.setItem("errorMessage", "Your IP is blocked");
+        window.location.href = '/';
+        return;
+      }
+      case 409: {
+        sessionStorage.setItem("errorMessage", "User already logged in on another device");
+        window.location.href = '/';
+        return;
+      }
     }
 
     // Parse the response and display the clients in a table
@@ -278,14 +305,22 @@ async function fetchClients() {
 
     const response = await fetch(`${url}/api/getBlockedAll`);
     // Handle session expiry or IP block
-    if (response.status === 401) {
-      sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
-      window.location.href = '/';
-      return;
-    } else if (response.status === 403) {
-      sessionStorage.setItem("errorMessage", "Your IP is blocked");
-      window.location.href = '/';
-      return;
+    switch (res.status){
+      case 401: {
+        sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
+        window.location.href = '/';
+        return;
+      }
+      case 403: {
+        sessionStorage.setItem("errorMessage", "Your IP is blocked");
+        window.location.href = '/';
+        return;
+      }
+      case 409: {
+        sessionStorage.setItem("errorMessage", "User already logged in on another device");
+        window.location.href = '/';
+        return;
+      }
     }
     const blockedList = await response.json();
     const tBody = document.getElementById('blocked-table-body');
@@ -352,15 +387,23 @@ async function toggleBlockMenu(type, clientIp, name) {
         body: JSON.stringify({ isBlocked, clientIp }),
       });
 
-      if (response.status === 401) {
-        sessionStorage.setItem("errorMessage", "Your session has expired.\nPlease log in again.");
+    switch (res.status){
+      case 401: {
+        sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
         window.location.href = '/';
         return;
-      } else if (response.status === 403) {
+      }
+      case 403: {
         sessionStorage.setItem("errorMessage", "Your IP is blocked");
         window.location.href = '/';
         return;
       }
+      case 409: {
+        sessionStorage.setItem("errorMessage", "User already logged in on another device");
+        window.location.href = '/';
+        return;
+      }
+    }
       alert(`ip was ${type}ed successfully`);
 
       // Reload the client list

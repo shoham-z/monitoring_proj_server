@@ -2,12 +2,11 @@
 const express = require('express');
 const router = express.Router();
 // Import specific functions from 'server_functions.js' for handling switch data, user authentication, etc.
-const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser, hashPassword, isAuthenticated, toggleBlock, getBlockAll } = require('./server_functions'); 
+const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser, hashPassword, toggleBlock, getBlockAll, getSessionAll, doesSessionExist } = require('./server_functions'); 
 const argon2 = require('argon2'); // Import argon2 for secure password hashing and verification
 
 // Set to track the IP addresses of connected clients
 const connectedClients = new Map();
-const INACTIVITY_TIMEOUT = 60 * 1000; // minute
 
 // Middleware to track connected clients' IP addresses
 router.use((req, res, next) => {
@@ -18,14 +17,30 @@ router.use((req, res, next) => {
 setInterval(() => {
     const now = Date.now();
     for (const [ip, lastSeen] of connectedClients.entries()) {
-        if (now - lastSeen > INACTIVITY_TIMEOUT) {
+        if (now - lastSeen > 60 * 1_000) {
             connectedClients.delete(ip); // Remove inactive IPs
         }
     }
-}, 30 * 1000); // Run cleanup every 1 minute
+}, 30 * 1_000 * 5); // Run cleanup every 5 minutes
+
+// Middleware to check if the user is authenticated (logged in)
+async function isAuthenticated(req, res, next) {
+
+    if (req.session?.user && await getUser(req.session.user)) {
+        return next();
+    }
+
+    // If it's an API request, return 401 Unauthorized instead of redirecting
+    if (req.originalUrl.startsWith('/api')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Redirect to the login page if the user is not authenticated
+    res.redirect('/');
+}
 
 // 🟢 GET all switches
-router.get('/getAll', async (req, res) => {
+router.get('/getAll', isAuthenticated, async (req, res) => {
     try {
         const switches = await getSwitchAll(); // Fetch all switches from the database
         res.status(200).json(switches); // Return the switches as JSON response
@@ -38,7 +53,8 @@ router.get('/getAll', async (req, res) => {
 // 🔵 GET a single switch by IP
 router.get('/get', async (req, res) => {
     try {
-        const switchData = await getSwitch(req.params.ip); // Fetch a single switch based on the provided IP address
+        const { ip } = req.body;
+        const switchData = await getSwitch(ip); // Fetch a single switch based on the provided IP address
         if (!switchData) {
             return res.status(404).json({ error: "Switch not found" }); // Return 404 if no switch is found for the given IP
         }
@@ -83,7 +99,7 @@ router.delete('/delete', async (req, res) => {
 
 // 🟠 EDIT a switch (PUT)
 router.put('/edit', async (req, res) => {
-    const { id, ip, name } = req.body; // Extract data to edit the switch
+    const { id, ip, name } = req.body.data || req.body; // Extract data to edit the switch
     try {
         const result = await editSwitch(id, ip, name); // Call the function to update the switch in the database
         if (result?.error) {
@@ -104,17 +120,21 @@ router.put('/edit', async (req, res) => {
 router.post('/login', async (req, res) => {
     const { username, password } = req.body; // Extract the username and password from the request body
     try {
-        const userData = await getUser(username); // Retrieve the user data from the database
-        if (!userData) {
+        const row = await getUser(username); // Retrieve the user data from the database
+        if (!row) {
             return res.status(404).json(null); // Return 404 if the user doesn't exist
         }
-        const valid = await argon2.verify(userData.password, password); // Verify the password using argon2
+        const valid = await argon2.verify(row.password, password); // Verify the password using argon2
         if (!valid) {
             return res.status(401).json(null); // Return 401 if the password is incorrect
         }
-        const user = userData.username; // Store the username for session tracking
-        req.session.user = { user }; // Set the user session to the authenticated user's username
-        res.status(200).json(userData); // Return the user data if the login is successful
+        const sessions = await getSessionAll();
+        if (doesSessionExist(sessions, row.username)){
+            res.status(409).json(null);
+        } else {
+            req.session.user = row.username; // Set the user session to the authenticated user's username
+            res.status(200).json(row.username); // Return the username if the login is successful
+        }
     } catch (error) {
         console.error("Error fetching user:", error); // Log any errors
         res.status(500).json({ error: "Internal Server Error" }); // Return 500 if an error occurs
@@ -158,4 +178,7 @@ router.get('/getBlockedAll', async (req, res) => {
 });
 
 // Export the router to be used in the main app
-module.exports = router;
+module.exports = {
+    router,
+    isAuthenticated
+}
