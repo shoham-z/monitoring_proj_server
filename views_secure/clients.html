@@ -17,7 +17,7 @@
       <thead>
         <tr>
           <th>IP Address</th>
-          <th>Actions</th>
+          <th>Last Activity</th>
         </tr>
       </thead>
       <tbody id="clients-table-body">
@@ -28,7 +28,7 @@
 
   <br><br><br><br>
 
-  <h1>Blocked Clients</h1>
+  <h1>Whitelisted Clients</h1>
   <!-- Table container with scroll functionality -->
   <div id="table-container">
     <button class="purple-btn" onclick="location.href='/switches'">Switches</button>
@@ -37,24 +37,43 @@
       <thead>
         <tr>
           <th>IP Address</th>
-          <th>Actions</th>
+          <th>Name</th>
+          <th><button class="blue-btn" onclick="addWhitelistMenu()">Add</button></th>
         </tr>
       </thead>
-      <tbody id="blocked-table-body">
+      <tbody id="whitelist-table-body">
         <!-- Dynamic data will be inserted here -->
       </tbody>
     </table>
   </div>
 
-<div id="blockMenu" class="popup">
+<div id="removeWhitelistMenu" class="popup">
   <div class="popup-content">
     <div id="drag-handle"></div>
-      <p id="blockDesc" style="color:crimson;">Are you sure you want to block this IP?</p>
-      <h3 class="closed" id="blockH1" style="white-space: pre-line;"></h3>
-      <button class="red-btn" id="confirmBlock">Yes, block</button>
-      <button class="gray-btn" id="cancelBlock">Cancel</button>
+      <p style="color:crimson;">Are you sure you want to remove this IP?</p>
+      <h3 class="closed" id="removeWhitelistH1" style="white-space: pre-line;"></h3>
+      <p style="color: crimson;">This action can't be undone.</p>
+      <button class="red-btn" id="confirmRemoveWhitelist">Yes, remove</button>
+      <button class="gray-btn" id="cancelRemoveWhitelist" onclick="removeWhitelistMenu()">Cancel</button>
     </div>
   </div>
 </div>
+
+  <div id="addWhitelistMenu" class="popup">
+    <div class="popup-content">
+      <div id="drag-handle"></div>
+      <h2 id="MenuH2"></h2>
+      <form id="Form">
+        <label for="IP Address">IP Address:</label><br>
+        <input type="text" id="IP Address" name="IP Address" autocomplete="off"><br><br>
+        <label for="Name">Name:</label><br>
+        <input type="text" id="Name" name="Name" autocomplete="off"><br><br>
+        <input type="hidden" id="menuId" name="MenuId"/>
+        <button type="submit" id="submit" style="width: 45%;">Submit</button>
+        <button type="button" style="width: 45%;" class="gray-btn" onclick="addWhitelistMenu()">Close</button>
+      </form>
+      <p id="invalid-input" class="error-message" style="display: none;"></p>
+    </div>
+  </div>
 </body>
 </html>

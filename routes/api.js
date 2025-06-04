@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 // Import specific functions from 'server_functions.js' for handling switch data, user authentication, etc.
-const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser, hashPassword, toggleBlock, getBlockAll, getSessionAll, doesSessionExist } = require('./server_functions'); 
+const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser, hashPassword, toggleWhitelist, getWhitelistAll, getSessionAll, doesSessionExist } = require('./server_functions'); 
 const argon2 = require('argon2'); // Import argon2 for secure password hashing and verification
 
 // Set to track the IP addresses of connected clients
@@ -143,36 +143,41 @@ router.post('/login', async (req, res) => {
 
 // GET /clients: Returns a list of connected clients based on IP address
 router.get('/clients', (req, res) => {
-    res.json(Array.from(connectedClients.keys())); // Return the set of connected client IPs as an array
+    res.json(Array.from(connectedClients.entries())); // Return the set of connected client IPs as an array
 });
 
-// POST /block: Block or unblock a client based on the provided IP
-router.post('/block', async (req, res) => {
-    const { isBlocked, clientIp } = req.body; // Extract blocking status and IP address from the request body
+// POST /whitelist: whitelist or unwhitelist a client based on the provided IP
+router.post('/whitelist', async (req, res) => {
+    const { isWhitelisted, clientIp, name } = req.body; // Extract whitelisting status and IP address from the request body
     try {
-        await toggleBlock(isBlocked, clientIp); // Toggle the block status of the client IP
-        if (!isBlocked){connectedClients.delete(clientIp)}
-        res.status(200).json(null); // Return a success response if the block action is completed
-    } catch {
-        console.error(`Error blocking ip: ${clientIp}`); // Log any errors if blocking fails
-        res.status(500).json({ error: "Internal Server Error" }); // Return 500 status if an error occurs
+        await toggleWhitelist(isWhitelisted, clientIp, name); // Toggle the whitelist status of the client IP
+        if (!isWhitelisted){connectedClients.delete(clientIp)}
+        res.status(200).json(null); // Return a success response if the whitelist action is completed
+    } catch (err){
+        if (err?.error){res.status(409).json(err.error)} 
+        else {
+            console.error(`Error whitelisting ip: ${clientIp}`); // Log any errors if whitelisting fails
+            res.status(500).json({ error: "Internal Server Error" }); // Return 500 status if an error occurs
+        }
     }
 });
 
 // GET /getIP: Returns the client's IP address (useful for identifying the user)
 router.get('/getIP', (req, res) => {
-    const forwarded = req.headers['x-forwarded-for']; // Check for forwarded IP address
-    const ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress; // Get the client's IP
-    res.json({ ip }); // Return the client's IP address as JSON
+    if (req.originalUrl.startsWith('/switches') || req.originalUrl.startsWith('/clients')){
+        const forwarded = req.headers['x-forwarded-for']; // Check for forwarded IP address
+        const ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress; // Get the client's IP
+        res.json({ ip }); // Return the client's IP address as JSON
+    }
 });
 
 // 🟢 GET all blocked users
-router.get('/getBlockedAll', async (req, res) => {
+router.get('/getWhitelistAll', async (req, res) => {
     try {
-        const switches = await getBlockAll(); // Fetch all blocked users from the database
-        res.status(200).json(switches); // Return the blocked users as JSON response
+        const whitelist = await getWhitelistAll(); // Fetch all whitelisted users from the database
+        res.status(200).json(whitelist); // Return the whitelisted users as JSON response
     } catch (error) {
-        console.error("Error fetching blocked users:", error); // Log any errors
+        console.error("Error fetching whitelisted users:", error); // Log any errors
         res.status(500).json({ error: "Internal Server Error" }); // Return a 500 status if an error occurs
     }
 });

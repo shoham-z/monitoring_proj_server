@@ -6,7 +6,7 @@ const cookieParser = require('cookie-parser'); // Middleware to parse cookies
 const logger = require('morgan'); // HTTP request logger middleware
 const session = require('express-session'); // Middleware to handle sessions
 const SQLiteStore = require('connect-sqlite3')(session);
-const { isBlocked } = require('./routes/server_functions'); // Import functions for authentication and IP blocking
+const { isWhitelisted } = require('./routes/server_functions'); // Import functions for authentication and IP blocking
 const { isAuthenticated } = require('./routes/api');
 
 // Import API router for handling API requests
@@ -17,11 +17,9 @@ const app = express(); // Create a new Express application
 app.use(session({
     store: new SQLiteStore({
          db: 'database.db',
-         table: 'sessions',
-         cleanupInterval: 1_000 * 60 * 5, // Interval to remove expired sessions in ms (default: 15 mins)
-         fileMustExist: true     // Whether the file must exist before opening (default: false)
+         table: 'sessions'
         }),
-    secret: 'ae1fc790fb0b1c435e6a9c40cb9c44a4a2e35fbcac61e7c7e3a44b68f65f86d3f0d3c5d394c79fd2aa964f76e6c4dc5f0b6e30e0b6a786dc0e472ad51ad9be66y',  // Secret key for session encryption
+    secret: "5594943a2e780abdc9a9932f74045036537f2ace0a41cdc020db52c5def3c9d33be0cdbfb7b153a343141e576736f4e0db77b5dbc4027a5b54ca4369d406aaa8",  // Secret key for session encryption
     resave: false,    // Don't force session to be saved back to the session store
     saveUninitialized: false,  // Don't create sessions until something is stored
     cookie: {
@@ -58,14 +56,16 @@ app.use(cookieParser());
 // Serve static files (e.g., images, stylesheets) from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public'), { index: 'login.html' }));
 
-// // API-specific middleware to check if the client's IP is blocked
+app.set('trust proxy', true);
+
+// // API-specific middleware to check if the client's IP is whitelisted
 app.use('/api', async (req, res, next) => {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;  // Get the client IP
-    const row = await isBlocked(ip); // Check if the IP is blocked
-    if (row) {
-        return res.status(403).send("Your IP is blocked."); // Send 403 Forbidden if the IP is blocked
+    const ip = req.socket.remoteAddress;  // Get the client IP
+    const row = await isWhitelisted(ip); // Check if the IP is whitelisted
+    if (ip !== "127.0.0.1" && !row) {
+        return res.status(403).send("Your IP is blocked."); // Send 403 Forbidden if the IP is not whitelisted
     }
-    next(); // If not blocked, continue to the next middleware/router
+    next(); // If whitelisted, continue to the next middleware/router
 });
 
 // Use the API router to handle requests under the /api path

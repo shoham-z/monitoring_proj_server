@@ -1,232 +1,184 @@
-// Import the required path module to handle file and directory paths
 const path = require('path');
-
-// Declare a variable to store the database path
-let dbPath;
-try {
-  // Try importing the 'app' module from Electron to handle paths in an Electron app
-  const { app } = require('electron');
-  const isDev = !app || !app.isPackaged; // Check if the app is running in development mode
-
-  // Set the database path based on whether the app is in development or production
-  dbPath = isDev
-    ? path.join(path.join(__dirname, '..', 'database.db')) // In development, use the local path
-    : path.join(process.resourcesPath, 'database.db'); // In production, use the resources path (packaged app)
-} catch (e) {
-  // Fallback for non-Electron usage (e.g., if the code is running outside of Electron)
-  dbPath = path.join(__dirname, 'database.db'); // Use a local database file in the current directory
-}
-
-// Import the sqlite3 module to work with SQLite databases
-var sqlite = require('sqlite3').verbose();
-
-// Create a new SQLite database connection using the computed dbPath
-let db = new sqlite.Database(dbPath, (err) => {
-    if(err) {
-        console.log("Error Occurred - " + err.message); // Log error if the connection fails
-    } else {
-        console.log("DataBase Connected"); // Log success message if the connection is successful
-    }
-});
-
-db.run("DELETE FROM sessions WHERE CAST(strftime('%s','now') AS INTEGER) > CAST(expired AS INTEGER)", (err) => {
-    if (err) {
-        console.error('Failed to delete expired sessions on startup:', err);
-    } else {
-        console.log('Expired sessions deleted on startup');
-    }
-});
-
-// Import argon2 for secure password hashing and verification
+const sqlite = require('sqlite3').verbose();
 const argon2 = require('argon2');
 
-// Function to add a new switch to the database
-async function addSwitch(ip, name, type) {
+let dbPath;
+try {
+  const { app } = require('electron');
+  const isDev = !app || !app.isPackaged;
+  dbPath = isDev
+    ? path.join(__dirname, '..', 'database.db')
+    : path.join(process.resourcesPath, 'database.db');
+} catch (e) {
+  dbPath = path.join(__dirname, 'database.db');
+}
+
+let db = new sqlite.Database(dbPath, (err) => {
+  if (err) console.log("Error Occurred - " + err.message);
+  else console.log("DataBase Connected");
+});
+
+db.run("DELETE FROM sessions", (err) => {
+  if (err) console.error("Failed to clear sessions on startup:", err);
+  else console.log("All sessions deleted on startup.");
+});
+
+const pruneExpired = () => {
+  db.run(
+    `DELETE FROM sessions WHERE CAST(strftime('%s','now') AS INTEGER) * 1000 > CAST(expired AS INTEGER)`,
+    (err) => {
+      if (err) console.error('Failed to delete expired sessions:', err);
+      else console.log('Expired sessions deleted');
+    }
+  );
+};
+pruneExpired();
+setInterval(pruneExpired, 1000 * 60 * 5);
+
+// Add new switch
+async function addSwitch(ip, name) {
   return new Promise((resolve, reject) => {
     db.run(`INSERT INTO switches (ip, name) VALUES (?, ?)`, [ip, name], function (err) {
       if (err) {
-        // Handle specific error for unique constraint violation
-        if (err.message.includes("UNIQUE")) {
-          reject({error: 'IP and name must be unique'}); // Reject if IP or name is not unique
-        } else {
-          reject(err); // Reject with other error
-        }
-      } else {
-        resolve(); // Resolve when insertion is successful
-      }
+        if (err.message.includes("UNIQUE")) reject({ error: 'IP and name must be unique' });
+        else reject(err);
+      } else resolve();
     });
   });
 }
 
-// Function to delete a switch from the database by its IP address
+// Delete switch by IP
 async function deleteSwitch(ip) {
   return new Promise((resolve, reject) => {
-    db.run(`DELETE FROM switches WHERE ip = (?)`, [ip], function (err) {
-      if (err) {
-        reject(err); // Reject with error if deletion fails
-      } else {
-        resolve(); // Resolve when deletion is successful
-      }
+    db.run(`DELETE FROM switches WHERE ip = ?`, [ip], function (err) {
+      if (err) reject(err);
+      else resolve();
     });
   });
 }
 
-// Function to edit an existing switch in the database by its ID
+// Edit switch by ID
 async function editSwitch(id, ip, name) {
   return new Promise((resolve, reject) => {
-    db.run(`UPDATE switches SET name = "${name}", ip = "${ip}" WHERE id = ${id}`, function (err) {
+    db.run(`UPDATE switches SET ip = ?, name = ? WHERE id = ?`, [ip, name, id], function (err) {
       if (err) {
-        // Handle specific error for unique constraint violation
-        if (err.message.includes("UNIQUE")) {
-          reject({error: 'IP and name must be unique'}); // Reject if IP or name is not unique
-        } else {
-          reject(err); // Reject with other error
-        }
-      } else {
-        resolve(); // Resolve when update is successful
-      }
+        if (err.message.includes("UNIQUE")) reject({ error: 'IP and name must be unique' });
+        else reject(err);
+      } else resolve();
     });
   });
 }
 
-// Function to get a switch by its IP address
+// Get switch by IP
 async function getSwitch(ip) {
-    return new Promise((resolve, reject) => {
-        db.get(`SELECT * FROM switches WHERE ip = "${ip}"`, (err, row) => {
-          if (err) {
-            reject(err); // Reject with error if fetching the switch fails
-          } else {
-            resolve(row); // Resolve with the switch data if successful
-          }
-        });
-      });
+  return new Promise((resolve, reject) => {
+    db.get(`SELECT * FROM switches WHERE ip = ?`, [ip], (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
+    });
+  });
 }
 
-// Function to get all switches from the database
+// Get all switches
 async function getSwitchAll() {
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT * FROM switches`, (err, row) => {
-          if (err) {
-            reject(err); // Reject with error if fetching switches fails
-          } else {
-            resolve(row); // Resolve with all switches if successful
-          }
-        });
-      });
+  return new Promise((resolve, reject) => {
+    db.all(`SELECT * FROM switches`, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
 }
 
-// Function to get a user from the database by username
+// Get user by username
 async function getUser(username) {
   return new Promise((resolve, reject) => {
-    db.get(`SELECT * FROM users WHERE username = "${username}"`, (err, row) => {
-      if (err) {
-        reject(err); // Reject with error if fetching user fails
-      } else {
-        resolve(row); // Resolve with user data if successful
-      }
+    db.get(`SELECT * FROM users WHERE username = ?`, [username], (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
     });
   });
 }
 
-// Function to check if an IP address is blocked
-async function isBlocked(ip) {
+// Check if IP is whitelisted
+async function isWhitelisted(ip) {
   return new Promise((resolve, reject) => {
-    db.get(`SELECT * FROM blocked WHERE ip = "${ip}"`, (err, row) => {
-      if (err) {
-        reject(err); // Reject with error if checking block status fails
-      } else {
-        resolve(row); // Resolve with the block status if successful
-      }
+    db.get(`SELECT * FROM whitelist WHERE ip = ?`, [ip], (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
     });
   });
 }
 
-// Function to toggle the block status of a client IP
-async function toggleBlock(isBlocked, clientIp) {
-  if (isBlocked) {
-    // If the client is being unblocked, delete from blocked table
-    return new Promise((resolve, reject) => {
-      db.run(`DELETE FROM blocked WHERE ip = (?)`, [clientIp], function (err) {
+// Toggle whitelist
+async function toggleWhitelist(isWhitelist, clientIp, name) {
+  return new Promise((resolve, reject) => {
+    if (isWhitelist) {
+      db.run(`DELETE FROM whitelist WHERE ip = ?`, [clientIp], function (err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    } else {
+      db.run(`INSERT INTO whitelist (ip, name) VALUES (?, ?)`, [clientIp, name], function (err) {
         if (err) {
-          reject(err); // Reject if deletion fails
-        } else {
-          resolve(); // Resolve when unblocking is successful
-        }
+          if (err.message.includes("UNIQUE")) reject({ error: 'IP and name must be unique' });
+          else reject(err);
+        } else resolve();
       });
-    });
-  } else {
-    // If the client is being blocked, insert into blocked table
-    return new Promise((resolve, reject) => {
-      db.run(`INSERT INTO blocked (ip) VALUES (?)`, [clientIp], function (err) {
-        if (err) {
-          reject(err); // Reject if insertion fails
-        } else {
-          resolve(); // Resolve when blocking is successful
-        }
-      });
-    });
-  }
-}
-
-// Function to get all blocked users from the database
-async function getBlockAll() {
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT * FROM blocked`, (err, row) => {
-          if (err) {
-            reject(err); // Reject with error if fetching blocked users fails
-          } else {
-            resolve(row); // Resolve with all blocked users if successful
-          }
-        });
-      });
-}
-
-// Function to get all sessions from the database
-async function getSessionAll() {
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT * FROM sessions`, (err, row) => {
-          if (err) {
-            reject(err); // Reject with error if fetching switches fails
-          } else {
-            resolve(row); // Resolve with all switches if successful
-          }
-        });
-      });
-}
-
-function doesSessionExist(rows, username){
-  for (const row of rows){
-    const session = JSON.parse(row.sess);
-    if (session.user === username) {
-      return true;
     }
+  });
+}
+
+// Get all whitelisted entries
+async function getWhitelistAll() {
+  return new Promise((resolve, reject) => {
+    db.all(`SELECT * FROM whitelist`, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
+// Get all sessions
+async function getSessionAll() {
+  return new Promise((resolve, reject) => {
+    db.all(`SELECT * FROM sessions`, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
+// Check if a session exists for a username
+function doesSessionExist(rows, username) {
+  for (const row of rows) {
+    const session = JSON.parse(row.sess);
+    if (session.user === username) return true;
   }
   return false;
 }
 
-// Function to hash a password using argon2
+// Secure password hashing
 async function hashPassword(password) {
   try {
-    const hashedPassword = await argon2.hash(password); // Hash the password using argon2
-    console.log('Hashed Password:', hashedPassword); // Log the hashed password (for debugging)
-    return hashedPassword; // Return the hashed password (store it in the database)
+    const hashedPassword = await argon2.hash(password);
+    console.log('Hashed Password:', hashedPassword);
+    return hashedPassword;
   } catch (err) {
-    console.error('Error hashing password:', err); // Log any error that occurs while hashing the password
+    console.error('Error hashing password:', err);
   }
 }
 
-// Export all functions to be used elsewhere in the application
 module.exports = {
-    addSwitch,
-    editSwitch,
-    deleteSwitch,
-    getSwitch,
-    getSwitchAll,
-    getUser,
-    isBlocked,
-    toggleBlock,
-    getBlockAll,
-    getSessionAll,
-    doesSessionExist,
-    hashPassword
-}
+  addSwitch,
+  editSwitch,
+  deleteSwitch,
+  getSwitch,
+  getSwitchAll,
+  getUser,
+  isWhitelisted,
+  toggleWhitelist,
+  getWhitelistAll,
+  getSessionAll,
+  doesSessionExist,
+  hashPassword,
+};

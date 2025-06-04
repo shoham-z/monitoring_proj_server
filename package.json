@@ -8,7 +8,7 @@
   "scripts": {
     "start": "electron .",
     "server": "node app.js",
-    "build": "electron-builder --win"
+    "build": "electron-builder --win --dir"
   },
   "build": {
     "appId": "com.ytg667.apple_server",
@@ -48,6 +48,6 @@
     "sqlite3": "^5.0.8"
   },
   "devDependencies": {
-    "electron": "^35.2.0"
+    "electron": "^36.4.0"
   }
 }

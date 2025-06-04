@@ -18,16 +18,6 @@ let userIP = "";
   }
 })();
 
-// Set the session timeout duration (10 minutes)
-const sessionTimeoutDuration = 1000 * 60 * 10;
-let sessionTimeout;
-
-// Resets the session timeout, clearing any previous timeout and setting a new one
-function resetSessionTimeout() {
-  clearTimeout(sessionTimeout); // Clear previous timeout
-  sessionTimeout = setTimeout(() => window.location.href = '/', sessionTimeoutDuration); // Redirect after timeout
-}
-
 // Function to validate if an input is a valid IPv4 address
 // It uses a regex pattern to check if the input matches a valid IPv4 address format
 function isValidIp(ip) {
@@ -286,25 +276,30 @@ async function fetchClients() {
     tableBody.innerHTML = '';
 
     clients.forEach(client => {
+      const date = new Date(client[1]);
+      const options = {
+        timeZone: 'Asia/Jerusalem',
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      };
+
+      const time = date.toLocaleString('en-GB', options);
       const tr = document.createElement("tr");
 
-      const isDisable = client === userIP || client === "127.0.0.1";
-      const disableReason = client === userIP ? "Cannot block your own IP" : client === "127.0.0.1" ? "Cannot block hosting PC" : "";
-
       tr.innerHTML = `
-        <td>${client}</td>
-        <td>
-          <button id="block ${client}" class="red-btn" ${isDisable ? "disabled title='" + disableReason + "'" : ""}
-            onclick="toggleBlockMenu('block', '${client}')">
-            Block
-          </button>
-        </td>
+        <td>${client[0]}</td>
+        <td>${time}</td>
       `;
       tableBody.appendChild(tr);
     });
 
-    const response = await fetch(`${url}/api/getBlockedAll`);
-    // Handle session expiry or IP block
+    const response = await fetch(`${url}/api/getWhitelistAll`);
+    // Handle session expiry or IP whitelist
     switch (res.status){
       case 401: {
         sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
@@ -312,7 +307,7 @@ async function fetchClients() {
         return;
       }
       case 403: {
-        sessionStorage.setItem("errorMessage", "Your IP is blocked");
+        sessionStorage.setItem("errorMessage", "Your IP is unauthorized");
         window.location.href = '/';
         return;
       }
@@ -322,18 +317,22 @@ async function fetchClients() {
         return;
       }
     }
-    const blockedList = await response.json();
-    const tBody = document.getElementById('blocked-table-body');
+    const whitelist = await response.json();
+    const tBody = document.getElementById('whitelist-table-body');
     tBody.innerHTML = '';
 
-    blockedList.forEach(row => {
+    whitelist.forEach(row => {
+      const isDisable = row.ip === userIP || row.ip === "127.0.0.1";
+      const disableReason = row.ip === userIP ? "Cannot remove your own IP" : row.ip === "127.0.0.1" ? "Cannot remove hosting PC" : "";
+
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${row.ip}</td>
+        <td>${row.name}</td>
         <td>
-          <button id="unblock ${row.ip}" class="green-btn"
-            onclick="toggleBlockMenu('unblock', '${row.ip}')">
-            Unblock
+          <button id="whitelist ${row.ip}" class="red-btn" ${isDisable ? "disabled title='" + disableReason + "'" : ""}
+            onclick="removeWhitelistMenu('${row.ip}')">
+            Remove
           </button>
         </td>
       `;
@@ -351,40 +350,44 @@ async function fetchClients() {
 
 }
 
-async function toggleBlockMenu(type, clientIp, name) {
+async function removeWhitelistMenu(clientIp, name) {
   if (clientIp === userIP) {
-    alert("You cannot block yourself.");
+    alert("You can't remove yourself.");
+    return;
+  } else if (clientIp === "127.0.0.1"){
+    alert("You can't remove hosting pc");
     return;
   }
 
-  const menu = document.getElementById("blockMenu");
-  const title = document.getElementById("blockH1");
-  const confirmButton = document.getElementById("confirmBlock");
-  const desc = document.getElementById("blockDesc");
+  const menu = document.getElementById("removeWhitelistMenu");
+  const title = document.getElementById("removeWhitelistH1");
+  const confirmButton = document.getElementById("confirmRemoveWhitelist");
 
   // Set menu title and button text based on the action type
-  title.textContent = `${type === "block" ? "Block" : "Unblock"} IP: ${clientIp}`;
-  confirmButton.textContent = type === "block" ? "Confirm Block" : "Confirm Unblock";
-  desc.textContent = type === "block" ? "Are you sure you want to block this IP?" : "Are you sure you want to unblock this IP?"
+  title.textContent = `Remove IP: ${clientIp}`;
 
-  // Show the menu centered
-  menu.style.display = "block";
-  menu.style.position = "fixed";
-  menu.style.top = "50%";
-  menu.style.left = "50%";
-  menu.style.transform = "translate(-50%, -50%)";
+  if (menu.style.display !== "" && menu.style.display === "block"){
+    menu.style.display = "none";
+    return;
+  } else {
+    // Show the menu centered
+    menu.style.display = "block";
+    menu.style.position = "fixed";
+    menu.style.top = "50%";
+    menu.style.left = "50%";
+    menu.style.transform = "translate(-50%, -50%)";
+  }
 
   // Set the confirm button handler
   confirmButton.onclick = async function () {
-    const isBlocked = type === "unblock"; // We're unblocking if type is "unblock"
 
     try {
-      const response = await fetch(`${url}/api/block`, {
+      const res = await fetch(`${url}/api/whitelist`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ isBlocked, clientIp }),
+        body: JSON.stringify({ isWhitelisted: true, clientIp }),
       });
 
     switch (res.status){
@@ -404,7 +407,7 @@ async function toggleBlockMenu(type, clientIp, name) {
         return;
       }
     }
-      alert(`ip was ${type}ed successfully`);
+      alert(`ip was removed successfully`);
 
       // Reload the client list
       await fetchClients();
@@ -412,8 +415,73 @@ async function toggleBlockMenu(type, clientIp, name) {
       menu.style.display = "none";
 
     } catch (err) {
-      console.error(`Failed to ${type} IP:`, err);
-      alert(`Failed to ${type} IP. Please try again.`);
+      console.error(`Failed to remove IP:`, err);
+      alert(`Failed to remove IP. Please try again.`);
+    }
+  };
+}
+
+function addWhitelistMenu(){
+  const menu = document.getElementById("addWhitelistMenu");
+  if (menu.style.display !== "" && menu.style.display === "block"){
+    menu.style.display = "none";
+    return;
+  } else {
+    document.getElementById("IP Address").value = "";
+    document.getElementById("Name").value = "";
+
+    // Show the menu centered
+    menu.style.display = "block";
+    menu.style.position = "fixed";
+    menu.style.top = "50%";
+    menu.style.left = "50%";
+    menu.style.transform = "translate(-50%, -50%)";
+  }
+
+  document.getElementById("submit").onclick = async (event) => {
+    event.preventDefault();
+    const clientIp = document.getElementById("IP Address").value;
+    const name = document.getElementById("Name").value;
+    // Check if both fields are filled and if the IP is valid
+    if (!clientIp || !name) return errorText("Please fill out all fields.");
+    if (!isValidIp(clientIp)) return errorText("Please enter a valid IP address");
+
+    try {
+    const res = await fetch(`${url}/api/whitelist`, {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isWhitelisted: false, clientIp, name })
+    });
+    // Handle session expiry or IP block
+    switch (res.status){
+      case 401: {
+        sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
+        window.location.href = '/';
+        return;
+      }
+      case 403: {
+        sessionStorage.setItem("errorMessage", "Your IP is blocked");
+        window.location.href = '/';
+        return;
+      }
+      case 409: {
+        return errorText("IP and name must be unique");
+      }
+    }
+    const data = await res.json();
+    // If no error in the response, show success message and reload switch data
+    if (!data?.error) {
+      alert("Ip was successfully added to the whitelist");
+      fetchClients();
+      addWhitelistMenu();
+    } else {
+      // Show error if IP and name are not unique
+      errorText(data.error);
+    }
+    } catch (err) {
+      console.error(`Error adding ${clientIp} to the whitelist:`, err);
+      // Show error if form submission fails
+      errorText(`Error submitting the form.\n Please try again.`);
     }
   };
 }
@@ -440,7 +508,12 @@ document.addEventListener("DOMContentLoaded", function () {
       break;
     }
     case "/clients": {
+      // Load client data
       fetchClients();
+
+      // Enable draggable menus
+      dragable("removeWhitelistMenu");
+      break;
     }
   }
 });
