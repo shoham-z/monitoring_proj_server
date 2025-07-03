@@ -1,6 +1,5 @@
 const path = require('path');
 const sqlite = require('sqlite3').verbose();
-const argon2 = require('argon2');
 
 let dbPath;
 try {
@@ -17,23 +16,6 @@ let db = new sqlite.Database(dbPath, (err) => {
   if (err) console.log("Error Occurred - " + err.message);
   else console.log("DataBase Connected");
 });
-
-db.run("DELETE FROM sessions", (err) => {
-  if (err) console.error("Failed to clear sessions on startup:", err);
-  else console.log("All sessions deleted on startup.");
-});
-
-const pruneExpired = () => {
-  db.run(
-    `DELETE FROM sessions WHERE CAST(strftime('%s','now') AS INTEGER) * 1000 > CAST(expired AS INTEGER)`,
-    (err) => {
-      if (err) console.error('Failed to delete expired sessions:', err);
-      else console.log('Expired sessions deleted');
-    }
-  );
-};
-pruneExpired();
-setInterval(pruneExpired, 1000 * 60 * 5);
 
 // Add new switch
 async function addSwitch(ip, name) {
@@ -89,16 +71,6 @@ async function getSwitchAll() {
   });
 }
 
-// Get user by username
-async function getUser(username) {
-  return new Promise((resolve, reject) => {
-    db.get(`SELECT * FROM users WHERE username = ?`, [username], (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
-}
-
 // Check if IP is whitelisted
 async function isWhitelisted(ip) {
   return new Promise((resolve, reject) => {
@@ -138,47 +110,13 @@ async function getWhitelistAll() {
   });
 }
 
-// Get all sessions
-async function getSessionAll() {
-  return new Promise((resolve, reject) => {
-    db.all(`SELECT * FROM sessions`, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
-}
-
-// Check if a session exists for a username
-function doesSessionExist(rows, username) {
-  for (const row of rows) {
-    const session = JSON.parse(row.sess);
-    if (session.user === username) return true;
-  }
-  return false;
-}
-
-// Secure password hashing
-async function hashPassword(password) {
-  try {
-    const hashedPassword = await argon2.hash(password);
-    console.log('Hashed Password:', hashedPassword);
-    return hashedPassword;
-  } catch (err) {
-    console.error('Error hashing password:', err);
-  }
-}
-
 module.exports = {
   addSwitch,
   editSwitch,
   deleteSwitch,
   getSwitch,
   getSwitchAll,
-  getUser,
   isWhitelisted,
   toggleWhitelist,
-  getWhitelistAll,
-  getSessionAll,
-  doesSessionExist,
-  hashPassword,
+  getWhitelistAll
 };

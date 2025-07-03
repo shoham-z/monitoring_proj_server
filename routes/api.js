@@ -2,8 +2,7 @@
 const express = require('express');
 const router = express.Router();
 // Import specific functions from 'server_functions.js' for handling switch data, user authentication, etc.
-const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, getUser, hashPassword, toggleWhitelist, getWhitelistAll, getSessionAll, doesSessionExist } = require('./server_functions'); 
-const argon2 = require('argon2'); // Import argon2 for secure password hashing and verification
+const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, toggleWhitelist, getWhitelistAll } = require('./server_functions'); 
 
 // Set to track the IP addresses of connected clients
 const connectedClients = new Map();
@@ -14,33 +13,9 @@ router.use((req, res, next) => {
     connectedClients.set(clientIp, Date.now()); // Add the IP and time to the connectedClients map to track active clients
     next(); // Pass the request to the next middleware or route handler
 });
-setInterval(() => {
-    const now = Date.now();
-    for (const [ip, lastSeen] of connectedClients.entries()) {
-        if (now - lastSeen > 60 * 1_000) {
-            connectedClients.delete(ip); // Remove inactive IPs
-        }
-    }
-}, 30 * 1_000 * 5); // Run cleanup every 5 minutes
-
-// Middleware to check if the user is authenticated (logged in)
-async function isAuthenticated(req, res, next) {
-
-    if (req.session?.user && await getUser(req.session.user)) {
-        return next();
-    }
-
-    // If it's an API request, return 401 Unauthorized instead of redirecting
-    if (req.originalUrl.startsWith('/api')) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // Redirect to the login page if the user is not authenticated
-    res.redirect('/');
-}
 
 // 🟢 GET all switches
-router.get('/getAll', isAuthenticated, async (req, res) => {
+router.get('/getAll', async (req, res) => {
     try {
         const switches = await getSwitchAll(); // Fetch all switches from the database
         res.status(200).json(switches); // Return the switches as JSON response
@@ -116,31 +91,6 @@ router.put('/edit', async (req, res) => {
     }
 });
 
-// POST /login: Handles user login by checking credentials and saving session
-router.post('/login', async (req, res) => {
-    const { username, password } = req.body; // Extract the username and password from the request body
-    try {
-        const row = await getUser(username); // Retrieve the user data from the database
-        if (!row) {
-            return res.status(404).json(null); // Return 404 if the user doesn't exist
-        }
-        const valid = await argon2.verify(row.password, password); // Verify the password using argon2
-        if (!valid) {
-            return res.status(401).json(null); // Return 401 if the password is incorrect
-        }
-        const sessions = await getSessionAll();
-        if (doesSessionExist(sessions, row.username)){
-            res.status(409).json(null);
-        } else {
-            req.session.user = row.username; // Set the user session to the authenticated user's username
-            res.status(200).json(row.username); // Return the username if the login is successful
-        }
-    } catch (error) {
-        console.error("Error fetching user:", error); // Log any errors
-        res.status(500).json({ error: "Internal Server Error" }); // Return 500 if an error occurs
-    }
-});
-
 // GET /clients: Returns a list of connected clients based on IP address
 router.get('/clients', (req, res) => {
     res.json(Array.from(connectedClients.entries())); // Return the set of connected client IPs as an array
@@ -171,7 +121,7 @@ router.get('/getIP', (req, res) => {
     }
 });
 
-// 🟢 GET all blocked users
+// 🟢 GET all whitelisted users
 router.get('/getWhitelistAll', async (req, res) => {
     try {
         const whitelist = await getWhitelistAll(); // Fetch all whitelisted users from the database
@@ -183,7 +133,4 @@ router.get('/getWhitelistAll', async (req, res) => {
 });
 
 // Export the router to be used in the main app
-module.exports = {
-    router,
-    isAuthenticated
-}
+module.exports = { router };

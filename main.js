@@ -22,8 +22,8 @@ let quit = false;  // Flag to track whether the user wants to quit the app
 // Function to create the main window
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1200,  // Set the window width
-    height: 800,  // Set the window height
+    width: 1400,  // Set the window width
+    height: 1000,  // Set the window height
     show: false,  // Initially hide the window when created
     icon: iconPath,  // Set the window icon
     autoHideMenuBar: true,  // Auto-hide the menu bar
@@ -31,6 +31,10 @@ function createWindow() {
       nodeIntegration: false,  // Disable node integration in the renderer process
       contextIsolation: true,  // Isolate the renderer process context for security
     }
+  });
+
+  mainWindow.on('will-resize', (event) => {
+  if (!mainWindow.isMaximized()) event.preventDefault();
   });
 
   // Load the app's URL or local server page

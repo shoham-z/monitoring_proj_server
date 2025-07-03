@@ -16,13 +16,19 @@ body {
 
 /* === TYPOGRAPHY === */
 /* Add outline to headings and closed banner text for better contrast */
-h1, .closed {
+h1 {
   color: white;
   text-shadow: -2px -2px 0 black, 2px -2px 0 black, -2px 2px 0 black, 2px 2px 0 black; /* Outline with black for visibility */
 }
-/* Override outline color for the .closed element */
+/* Add outline color for the .closed element */
 .closed {
+  color: white;
   text-shadow: -2px -2px 0 crimson, 2px -2px 0 crimson, -2px 2px 0 crimson, 2px 2px 0 crimson; /* Crimson outline for emphasis */
+}
+.success {
+  color: white;
+  text-shadow: -2px -2px 0 green, 2px -2px 0 green, -2px 2px 0 green, 2px 2px 0 green; /* lightgreen outline for emphasis */
+  visibility: hidden;
 }
 
 /* === TABLE === */
@@ -113,7 +119,7 @@ button[type="submit"]:hover {
 
 /* === FORMS, INPUTS === */
 /* Shared input styling */
-input[type="text"], input[type="password"] {
+input[type="text"] {
   width: 100%;                             /* Fill container */
   padding: 10px;
   margin: 10px 0;
@@ -126,7 +132,7 @@ input[type="text"], input[type="password"] {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 /* Focus effect for inputs */
-input[type="text"]:focus, input[type="password"]:focus {
+input[type="text"]:focus {
   outline: none;
   border: 1px solid #569fcc;             /* Highlight on focus */
 }
@@ -177,26 +183,6 @@ input::placeholder {
   font-size: 16px;
   border-radius: 5px;
   text-align: center;
-}
-
-/* === LOGIN === */
-/* Container for login form */
-.login-container {
-  background: #202424;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3); /* Soft glow around form */
-  width: 315px;
-  text-align: center;
-}
-/* Inputs inside login container */
-.login-container input {
-  width: 90%;
-  border: none;
-  border-radius: 5px;
-  font-size: 16px;
-  background-color: #38343c;
-  color: white;
 }
 
 /* === ERROR, SCROLLBAR, LAYOUT === */

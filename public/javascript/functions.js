@@ -35,29 +35,16 @@ function errorText(text, id = "invalid-input") {
 async function loadSwitchData() {
   try {
     const res = await fetch(`${url}/api/getAll`);
-    // If the user is not authorized or forbidden, redirect to login page
-    switch (res.status){
-      case 401: {
-        sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
-        window.location.href = '/';
-        return;
-      }
-      case 403: {
-        sessionStorage.setItem("errorMessage", "Your IP is blocked");
-        window.location.href = '/';
-        return;
-      }
-      case 409: {
-        sessionStorage.setItem("errorMessage", "User already logged in on another device");
-        window.location.href = '/';
-        return;
-      }
-    }
+
     // If the response is not OK, throw an error
     if (!res.ok) throw new Error("Server error");
 
     // Parse the response as JSON to get the switches data
     const switches = await res.json();
+
+    // If the user is not authorized or forbidden, redirect to blocked page
+    if (res.status === 403 && switches.redirect){return window.location.href = switches.redirect;}
+
     const tbody = document.querySelector("tbody");
     // Populate the table with the switches data
     tbody.innerHTML = switches.map(row => `
@@ -70,8 +57,6 @@ async function loadSwitchData() {
         </td>
       </tr>`).join("");
 
-    // Set a timeout to reload switch data and filter the table every 30 seconds
-    setTimeout(() => loadSwitchData().then(filterTable), 30_000);
   } catch {
     // If an error occurs, display an offline message and disable buttons
     const title = document.getElementById("title");
@@ -91,6 +76,25 @@ function filterTable() {
   });
 }
 
+let successTimeout;
+function showSuccessMessage(message) {
+  const msg = document.getElementById("success-message");
+
+  msg.style.visibility = "visible";
+  msg.textContent = message;
+
+  // Clear the previous timeout, if any
+  if (successTimeout) {
+    clearTimeout(successTimeout);
+  }
+
+  // Set a new timeout to hide the message after 5 seconds
+  successTimeout = setTimeout(() => {
+    msg.style.visibility = "hidden";
+    successTimeout = null; // optional: clear the reference
+  }, 5000);
+}
+
 // Function to submit a form (add, edit, or delete switch data)
 async function submitForm(request, method, body, successMessage) {
   try {
@@ -99,28 +103,14 @@ async function submitForm(request, method, body, successMessage) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    // Handle session expiry or IP block
-    switch (res.status){
-      case 401: {
-        sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
-        window.location.href = '/';
-        return;
-      }
-      case 403: {
-        sessionStorage.setItem("errorMessage", "Your IP is blocked");
-        window.location.href = '/';
-        return;
-      }
-      case 409: {
-        sessionStorage.setItem("errorMessage", "User already logged in on another device");
-        window.location.href = '/';
-        return;
-      }
-    }
+
     const data = await res.json();
+
+    // Handle session expiry or IP block
+    if (res.status === 403 && data.redirect){return window.location.href = data.redirect;}
     // If no error in the response, show success message and reload switch data
     if (!data?.error) {
-      alert(successMessage);
+      showSuccessMessage(successMessage);
       loadSwitchData().then(filterTable);
       toggleMenu("Menu", true);
     } else {
@@ -225,53 +215,17 @@ function dragable(menuID) {
   };
 }
 
-// Function to check user credentials during login
-async function userCheck(e) {
-  e.preventDefault();
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
-  try {
-    // Send login request
-    const res = await fetch(`${url}/api/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ username, password })
-    });
-    if (res.status === 403) {return errorText("your IP is blocked", "error-message");}
-    else if (res.status === 409) {return errorText("User already logged in on another device", "error-message");}
-    window.location.href = `/switches`
-  } catch {
-    document.getElementById("error-message").textContent = "Server error. Try again.";
-    document.getElementById("error-message").style.display = "block";
-  }
-}
 // Function to fetch and display client data
 async function fetchClients() {
   try {
     const res = await fetch(`${url}/api/clients`);
 
-    // Handle session expiry or IP block
-    switch (res.status){
-      case 401: {
-        sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
-        window.location.href = '/';
-        return;
-      }
-      case 403: {
-        sessionStorage.setItem("errorMessage", "Your IP is blocked");
-        window.location.href = '/';
-        return;
-      }
-      case 409: {
-        sessionStorage.setItem("errorMessage", "User already logged in on another device");
-        window.location.href = '/';
-        return;
-      }
-    }
-
     // Parse the response and display the clients in a table
     const clients = await res.json();
+
+    // Handle session expiry or IP block
+  if (res.status === 403 && clients.redirect){return window.location.href = clients.redirect;}
+
     const tableBody = document.getElementById('clients-table-body');
     tableBody.innerHTML = '';
 
@@ -299,25 +253,9 @@ async function fetchClients() {
     });
 
     const response = await fetch(`${url}/api/getWhitelistAll`);
-    // Handle session expiry or IP whitelist
-    switch (res.status){
-      case 401: {
-        sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
-        window.location.href = '/';
-        return;
-      }
-      case 403: {
-        sessionStorage.setItem("errorMessage", "Your IP is unauthorized");
-        window.location.href = '/';
-        return;
-      }
-      case 409: {
-        sessionStorage.setItem("errorMessage", "User already logged in on another device");
-        window.location.href = '/';
-        return;
-      }
-    }
     const whitelist = await response.json();
+    // Handle session expiry or IP whitelist
+    if (res.status === 403 && whitelist.redirect){return window.location.href = whitelist.redirect;}
     const tBody = document.getElementById('whitelist-table-body');
     tBody.innerHTML = '';
 
@@ -338,8 +276,6 @@ async function fetchClients() {
       `;
       tBody.appendChild(tr);
     })
-    setTimeout(() => fetchClients(), 30_000); // Reload every 30s
-
   } catch (err) {
     console.error("Failed to fetch clients:", err);
     const title = document.getElementById("title");
@@ -390,24 +326,14 @@ async function removeWhitelistMenu(clientIp, name) {
         body: JSON.stringify({ isWhitelisted: true, clientIp }),
       });
 
-    switch (res.status){
-      case 401: {
-        sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
-        window.location.href = '/';
-        return;
+    if (res.status === 403)
+      {
+        const data = res.json();
+        if (data.redirect){
+          return window.location.href = data.redirect;
+        }
       }
-      case 403: {
-        sessionStorage.setItem("errorMessage", "Your IP is blocked");
-        window.location.href = '/';
-        return;
-      }
-      case 409: {
-        sessionStorage.setItem("errorMessage", "User already logged in on another device");
-        window.location.href = '/';
-        return;
-      }
-    }
-      alert(`ip was removed successfully`);
+      showSuccessMessage(`ip was removed successfully`);
 
       // Reload the client list
       await fetchClients();
@@ -454,15 +380,11 @@ function addWhitelistMenu(){
     });
     // Handle session expiry or IP block
     switch (res.status){
-      case 401: {
-        sessionStorage.setItem("errorMessage", "Your session has expired.\n Please log in again.");
-        window.location.href = '/';
-        return;
-      }
       case 403: {
-        sessionStorage.setItem("errorMessage", "Your IP is blocked");
-        window.location.href = '/';
-        return;
+        const data = res.json();
+        if (data.redirect){
+          return window.location.href = data.redirect;
+        }
       }
       case 409: {
         return errorText("IP and name must be unique");
@@ -471,7 +393,7 @@ function addWhitelistMenu(){
     const data = await res.json();
     // If no error in the response, show success message and reload switch data
     if (!data?.error) {
-      alert("Ip was successfully added to the whitelist");
+      showSuccessMessage("Ip was successfully added to the whitelist");
       fetchClients();
       addWhitelistMenu();
     } else {
@@ -490,17 +412,11 @@ function addWhitelistMenu(){
 // Event listener to handle different pages once the DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
   switch (window.location.pathname){
-    case "/": {
-      const sessionError = sessionStorage.getItem("errorMessage");
-      if (sessionError) {
-        errorText(sessionError, "error-message");
-        sessionStorage.removeItem("errorMessage");
-      }
-      break;
-    }
+    case "/":
     case "/switches": {
       // Load switch data
       loadSwitchData();
+      setInterval(() => {loadSwitchData();}, 5000);
 
       // Enable draggable menus
       dragable("Menu");
@@ -510,6 +426,7 @@ document.addEventListener("DOMContentLoaded", function () {
     case "/clients": {
       // Load client data
       fetchClients();
+      setInterval(() => {fetchClients();}, 5000);
 
       // Enable draggable menus
       dragable("removeWhitelistMenu");
