@@ -335,7 +335,7 @@ async function removeWhitelistMenu(clientIp, name) {
           return window.location.href = data.redirect;
         }
       }
-      showSuccessMessage(`ip was removed successfully`);
+      showSuccessMessage(`IP was removed successfully`);
 
       // Reload the client list
       await fetchClients();
@@ -397,7 +397,7 @@ function addWhitelistMenu(){
     const data = await res.json();
     // If no error in the response, show success message and reload switch data
     if (!data?.error) {
-      showSuccessMessage("Ip was successfully added to the whitelist");
+      showSuccessMessage("IP was successfully added to the whitelist");
       fetchClients();
       addWhitelistMenu();
     } else {

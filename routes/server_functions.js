@@ -141,6 +141,56 @@ async function getLogs(page = 1) {
   });
 }
 
+/**
+ * Inserts rows from a JSON file into the specified table (excluding 'id').
+ * @param {string} tableName - The table to insert into: 'whitelist', 'switches', or 'logs'.
+ * @param {string} filePath - Absolute path to the JSON file to import.
+ */
+async function insertTable(tableName, rows) {
+  return new Promise((resolve, reject) => {
+    if (!rows || rows.length === 0) return resolve();
+
+    let columns;
+    switch (tableName) {
+      case 'whitelist':
+        columns = ['ip', 'name'];
+        break;
+      case 'switches':
+        columns = ['ip', 'name'];
+        break;
+      case 'logs':
+        columns = ['type', 'time', 'clientIP', 'ip', 'name', 'newIP', 'newName'];
+        break;
+      default:
+        return reject(new Error(`Unknown table: ${tableName}`));
+    }
+
+    const placeholders = columns.map(() => '?').join(',');
+    const sql = `INSERT OR IGNORE INTO ${tableName} (${columns.join(',')}) VALUES (${placeholders})`;
+
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
+      const stmt = db.prepare(sql);
+
+      for (const row of rows) {
+        const values = columns.map(col => (col in row ? row[col] : null));
+        stmt.run(values);
+      }
+
+      stmt.finalize(err => {
+        if (err) {
+          db.run('ROLLBACK');
+          return reject(err);
+        }
+        db.run('COMMIT', commitErr => {
+          if (commitErr) reject(commitErr);
+          else resolve();
+        });
+      });
+    });
+  });
+}
+
 module.exports = {
   addSwitch,
   editSwitch,
@@ -151,5 +201,6 @@ module.exports = {
   toggleWhitelist,
   getWhitelistAll,
   saveLog,
-  getLogs
+  getLogs,
+  insertTable
 };

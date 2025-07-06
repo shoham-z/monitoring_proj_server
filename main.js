@@ -3,7 +3,8 @@ const { app, BrowserWindow, Tray, Menu, dialog } = require('electron');
 const path = require('path');  // Module for handling and transforming file paths
 const fs = require('fs');
 const archiver = require('archiver');
-const { getSwitchAll, getLogs, getWhitelistAll} = require('./routes/server_functions.js');
+const unzipper = require('unzipper');
+const { getSwitchAll, getLogs, getWhitelistAll, insertTable} = require('./routes/server_functions.js');
 
 // Check if the app is in development mode or production
 const isDev = !app.isPackaged;  // If the app is not packaged, it is in development mode
@@ -148,54 +149,113 @@ async function exportTable(tableName) {
   }
 }
 
-async function createMenu(){
-const template = [
-  {
-    label: 'File',
-    submenu: [
-      {
-        label: 'Export Whitelist',
-        click: async () => {
-          await exportTable('whitelist');
-        }
-      },
-      {
-        label: 'Export Switches',
-        click: async () => {
-          await exportTable('switches');
-        }
-      },
-      {
-        label: 'Export Logs',
-        click: async () => {
-          await exportTable('logs');
-        }
-      },
-      { type: 'separator' },
-      {
-        label: 'Export All',
-        click: async () => {
-          await exportTable('all');
-        }
+async function importTable(tableName) {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    title: `Import ${tableName}`,
+    filters: tableName === 'all'
+      ? [{ name: 'ZIP Archive', extensions: ['zip'] }]
+      : [{ name: 'JSON', extensions: ['json'] }],
+    properties: ['openFile']
+  });
+
+  if (canceled || !filePaths.length) return;
+
+  const filePath = filePaths[0];
+
+  if (tableName === 'all') {
+    const tempDir = path.join(__dirname, 'tmp_import');
+    fs.mkdirSync(tempDir, { recursive: true });
+
+    await fs.createReadStream(filePath)
+      .pipe(unzipper.Extract({ path: tempDir }))
+      .promise();
+
+    const tables = ['whitelist', 'switches', 'logs'];
+    for (const tbl of tables) {
+      const jsonPath = path.join(tempDir, `${tbl}.json`);
+      if (fs.existsSync(jsonPath)) {
+        const raw = fs.readFileSync(jsonPath, 'utf8');
+        const data = JSON.parse(raw);
+        await insertTable(tbl, data);  // Direct call, no HTTP needed
       }
-    ]
-  },
-  {
-  label: 'View',
-  submenu: [
+    }
+
+    fs.rmSync(tempDir, { recursive: true, force: true });
+
+  } else {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const data = JSON.parse(raw);
+    await insertTable(tableName, data);
+  }
+
+  console.log(`Imported data for ${tableName} successfully.`);
+}
+
+
+async function createMenu() {
+  const template = [
     {
-      role: 'reload'
+      label: 'File',
+      submenu: [
+        {
+          label: 'Export',
+          submenu: [
+            {
+              label: 'Whitelist',
+              click: async () => await exportTable('whitelist')
+            },
+            {
+              label: 'Switches',
+              click: async () => await exportTable('switches')
+            },
+            {
+              label: 'Logs',
+              click: async () => await exportTable('logs')
+            },
+            { type: 'separator' },
+            {
+              label: 'All (ZIP)',
+              click: async () => await exportTable('all')
+            }
+          ]
+        },
+        {
+          label: 'Import',
+          submenu: [
+            {
+              label: 'Whitelist',
+              click: async () => await importTable('whitelist')
+            },
+            {
+              label: 'Switches',
+              click: async () => await importTable('switches')
+            },
+            {
+              label: 'Logs',
+              click: async () => await importTable('logs')
+            },
+                        { type: 'separator' },
+            {
+              label: 'All (ZIP)',
+              click: async () => await importTable('all')
+            }
+          ]
+        }
+      ]
     },
     {
-      role: 'toggledevtools'
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'toggledevtools' }
+      ]
     }
-  ]
-}
-];
+  ];
 
-  menu = Menu.buildFromTemplate(template);
+  const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 }
+
 
 // When the app is ready, set up the main window, tray, and start the server
 app.whenReady().then(async () => {
