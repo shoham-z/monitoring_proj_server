@@ -5,28 +5,11 @@
   <link rel="stylesheet" href="./stylesheets/style.css">
   <link rel="icon" type="image/png" href="./assets/apple.png">
   <script src="./javascript/functions.js"></script>
-  <style>
-    .top-left-button {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      padding: 8px 12px;
-      background-color: #007bff;
-      color: white;
-      text-decoration: none;
-      border-radius: 5px;
-      z-index: 999;
-      font-size: 14px;
-    }
-
-    .top-left-button:hover {
-      background-color: #0056b3;
-    }
-  </style>
 </head>
 
 <body class="switches-page">
   <button class="purple-btn" onclick="location.href='/clients'">Clients</button>
+  <button class="purple-btn" onclick="location.href='/logs'">Logs</button>
 
   <h1 id="title">Switches</h1>
   <h2 id = "success-message" class="success">Successfully</h2>
@@ -34,7 +17,7 @@
   <input type="text" id="search-bar" placeholder="Search by IP or Name" onkeyup="filterTable()">
 
   <!-- Table container with scroll functionality -->
-  <div id="table-container">
+  <div id="table-container" style="width: 650px;">
     <table>
       <thead>
         <tr>

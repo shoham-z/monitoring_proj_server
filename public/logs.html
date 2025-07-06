@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Apple Server</title>
+  <link rel="stylesheet" href="./stylesheets/style.css">
+  <link rel="icon" type="image/png" href="./assets/apple.png">
+  <script src="./javascript/functions.js"></script>
+</head>
+
+<body class="logs-page">
+  <button class="purple-btn" onclick="location.href='/switches'">Switches</button>
+  <button class="purple-btn" onclick="location.href='/clients'">Clients</button>
+
+  <h1 id="title">Logs</h1>
+
+  
+  <input type="text" id="search-bar" placeholder="Search Here" onkeyup="filterLogs()">
+
+  <!-- Table container with scroll functionality -->
+  <div id="table-container" style="width: 875px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Index</th>
+          <th>Type</th>
+          <th>Time</th>
+          <th>Actor</th>
+          <th>IP</th>
+          <th>Name</th>
+          <th>New IP</th>
+          <th>New Name</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <!-- Dynamic data will be inserted here -->
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

@@ -131,11 +131,13 @@ function edit(e) {
   const nameEl = document.getElementById("Name");
   const ip = ipEl.value || ipEl.placeholder;
   const name = nameEl.value || nameEl.placeholder;
+  const oldIP  = ipEl.placeholder;
+  const oldName = nameEl.placeholder;
   const id = document.getElementById("menuId").value;
   // Check if at least one field is filled and if the IP is valid
   if (!ip && !name) return errorText("Please fill out at least one field\n (IP Address or Name).");
   if (!isValidIp(ip)) return errorText("Please enter a valid IP address");
-  submitForm("edit", "PUT", { id, ip, name }, "Edited Successfully!");
+  submitForm("edit", "PUT", { id, ip, name, oldIP, oldName }, "Edited Successfully!");
 }
 
 // Function to handle adding a switch
@@ -155,7 +157,7 @@ function deleteRow(ip, name) {
   toggleMenu("deleteMenu");
   // On confirmation, call submitForm to delete the switch
   document.getElementById('confirmDelete').onclick = () => {
-    submitForm("delete", "DELETE", { ip }, "Deleted Successfully!");
+    submitForm("delete", "DELETE", { ip, name }, "Deleted Successfully!");
     document.getElementById('deleteMenu').style.display = 'none';
   };
 }
@@ -269,7 +271,7 @@ async function fetchClients() {
         <td>${row.name}</td>
         <td>
           <button id="whitelist ${row.ip}" class="red-btn" ${isDisable ? "disabled title='" + disableReason + "'" : ""}
-            onclick="removeWhitelistMenu('${row.ip}')">
+            onclick="removeWhitelistMenu('${row.ip}', '${row.name}')">
             Remove
           </button>
         </td>
@@ -323,7 +325,7 @@ async function removeWhitelistMenu(clientIp, name) {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ isWhitelisted: true, clientIp }),
+        body: JSON.stringify({ isWhitelisted: true, clientIp, name }),
       });
 
     if (res.status === 403)
@@ -355,6 +357,8 @@ function addWhitelistMenu(){
   } else {
     document.getElementById("IP Address").value = "";
     document.getElementById("Name").value = "";
+
+    document.getElementById("invalid-input").style.display = "none";
 
     // Show the menu centered
     menu.style.display = "block";
@@ -408,6 +412,66 @@ function addWhitelistMenu(){
   };
 }
 
+// Function to load all logs data from the server
+async function loadLogs() {
+  try {
+    const res = await fetch(`${url}/api/getLogs`);
+
+    // If the response is not OK, throw an error
+    if (!res.ok) throw new Error("Server error");
+
+    // Parse the response as JSON to get the logs data
+    const logs = await res.json();
+
+    // If the user is not authorized or forbidden, redirect to blocked page
+    if (res.status === 403 && logs.redirect){return window.location.href = logs.redirect;}
+
+    const tbody = document.querySelector("tbody");
+    // Populate the table with the switches data
+    tbody.innerHTML = logs.map(row => `
+      <tr>
+        <td>${row.id}</td>
+        <td>${row.type}</td>
+        <td>${msToString(row.time)}</td>
+        <td>${row.clientIP}</td>
+        <td>${row.ip}</td>
+        <td>${row.name}</td>
+        <td>${row.newIP || ""}</td>
+        <td>${row.newName || ""}</td>
+      </tr>`).join("");
+
+  } catch {
+    // If an error occurs, display an offline message and disable buttons
+    const title = document.getElementById("title");
+    title.className = "closed";
+    title.textContent = "The Server Is Offline";
+    document.querySelectorAll("button:not(.cancel-btn)").forEach(btn => btn.disabled = true);
+  }
+}
+
+function msToString(ms){
+  return new Date(ms).toLocaleString('en-GB', {
+  timeZone: 'Asia/Jerusalem',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit'
+});
+}
+
+// Function to filter the logs table based on the search input
+function filterLogs() {
+  const input = document.getElementById("search-bar").value.toLowerCase();
+  document.querySelectorAll("#table-body tr").forEach(row => {
+    const matchFound = Array.from(row.cells).some(cell =>
+      cell.textContent.toLowerCase().includes(input)
+    );
+    row.style.display = matchFound ? "" : "none";
+  });
+}
+
 
 // Event listener to handle different pages once the DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
@@ -416,7 +480,7 @@ document.addEventListener("DOMContentLoaded", function () {
     case "/switches": {
       // Load switch data
       loadSwitchData();
-      setInterval(() => {loadSwitchData();}, 5000);
+      setInterval(() => {loadSwitchData().then(filterTable);}, 5000);
 
       // Enable draggable menus
       dragable("Menu");
@@ -430,6 +494,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Enable draggable menus
       dragable("removeWhitelistMenu");
+      break;
+    }
+    case "/logs": {
+      //Load logs
+      loadLogs();
+      setInterval(() => {loadLogs().then(filterLogs);}, 5000);
       break;
     }
   }

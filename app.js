@@ -10,6 +10,18 @@ const { isWhitelisted } = require('./routes/server_functions'); // Import functi
 const { router } = require('./routes/api');
 const app = express(); // Create a new Express application
 
+app.use((req, res, next) => {
+  const host = req.headers.host;
+  const ip = req.ip || req.socket.remoteAddress;
+
+  // Block access if the host header contains "localhost" or "127.0.0.1"
+  if (host.includes('localhost') || host.includes('127.0.0.1')) {
+    console.warn(`Blocked localhost access: ${host} from ${ip}`);
+    return res.status(404);
+  }
+  next();
+});
+
 // Middleware to disable caching in development (removes HTTP 304 responses)
 // Remove this once the application is finished and optimized
 app.use((req, res, next) => {
@@ -60,6 +72,12 @@ app.get('/switches', async (req, res) => {
 // Serve the clients page, only if the user is authenticated
 app.get('/clients', async (req, res) => {
     if (await isAllowed(req)){res.sendFile(path.join(__dirname, 'public', 'clients.html'));}
+    else {res.status(403).sendFile(path.join(__dirname, 'public', 'blocked.html'));} // Send the clients.html page as a response
+});
+
+// Serve the logs page, only if the user is authenticated
+app.get('/logs', async (req, res) => {
+    if (await isAllowed(req)){res.sendFile(path.join(__dirname, 'public', 'logs.html'));}
     else {res.status(403).sendFile(path.join(__dirname, 'public', 'blocked.html'));} // Send the clients.html page as a response
 });
 

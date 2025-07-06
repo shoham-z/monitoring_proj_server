@@ -6,7 +6,7 @@ try {
   const { app } = require('electron');
   const isDev = !app || !app.isPackaged;
   dbPath = isDev
-    ? path.join(__dirname, '..', 'database.db')
+    ? path.join(__dirname, '../resources', 'database.db')
     : path.join(process.resourcesPath, 'database.db');
 } catch (e) {
   dbPath = path.join(__dirname, 'database.db');
@@ -110,6 +110,37 @@ async function getWhitelistAll() {
   });
 }
 
+async function saveLog(type, clientIP, ip, name, newIP, newName){
+  return new Promise((resolve, reject) => {
+  db.run(`INSERT INTO logs (type, time, clientIP, ip, name, newIP, newName) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  [type, Date.now(), clientIP, ip, name, newIP, newName],
+    function (err) {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+}
+
+async function getLogs(page = 1) {
+  const size = 100;
+  const offset = (page - 1) * size;
+
+  return new Promise((resolve, reject) => {
+    let query = `SELECT * FROM logs ORDER BY time DESC`;
+    let params = [];
+
+    if (page !== -1) {
+      query += ` LIMIT ? OFFSET ?`;
+      params = [size, offset];
+    }
+
+    db.all(query, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
 module.exports = {
   addSwitch,
   editSwitch,
@@ -118,5 +149,7 @@ module.exports = {
   getSwitchAll,
   isWhitelisted,
   toggleWhitelist,
-  getWhitelistAll
+  getWhitelistAll,
+  saveLog,
+  getLogs
 };

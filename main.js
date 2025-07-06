@@ -1,6 +1,9 @@
 // Import necessary modules from Electron
 const { app, BrowserWindow, Tray, Menu, dialog } = require('electron'); 
 const path = require('path');  // Module for handling and transforming file paths
+const fs = require('fs');
+const archiver = require('archiver');
+const { getSwitchAll, getLogs, getWhitelistAll} = require('./routes/server_functions.js');
 
 // Check if the app is in development mode or production
 const isDev = !app.isPackaged;  // If the app is not packaged, it is in development mode
@@ -16,6 +19,7 @@ if (!isDev){
 
 let tray;  // Tray object to handle the system tray icon
 let mainWindow;  // Main application window
+let menu; // Menu bar
 
 let quit = false;  // Flag to track whether the user wants to quit the app
 
@@ -26,7 +30,6 @@ function createWindow() {
     height: 1000,  // Set the window height
     show: false,  // Initially hide the window when created
     icon: iconPath,  // Set the window icon
-    autoHideMenuBar: true,  // Auto-hide the menu bar
     webPreferences: {
       nodeIntegration: false,  // Disable node integration in the renderer process
       contextIsolation: true,  // Isolate the renderer process context for security
@@ -38,7 +41,7 @@ function createWindow() {
   });
 
   // Load the app's URL or local server page
-  mainWindow.loadURL('http://localhost:3001');
+  mainWindow.loadURL('http://10.0.0.17:3001');
 
   // Event handler when the window is about to close
   mainWindow.on('close', (event) => {
@@ -81,12 +84,126 @@ function createTray() {
   });
 }
 
+function removeNulls(obj) {
+  if (Array.isArray(obj)) {
+    return obj.map(removeNulls);
+  } else if (obj && typeof obj === 'object') {
+    const cleaned = {};
+    for (const key in obj) {
+      if (obj[key] !== null && obj[key] !== undefined) {
+        cleaned[key] = removeNulls(obj[key]);
+      }
+    }
+    return cleaned;
+  }
+  return obj;
+}
+
+async function exportTable(tableName) {
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+    title: tableName === 'all' ? 'Export All Tables (ZIP)' : `Export ${tableName}`,
+    defaultPath: tableName === 'all' ? 'export_all.zip' : `${tableName}.json`,
+    filters: tableName === 'all' ?
+      [{ name: 'ZIP Archive', extensions: ['zip'] }] :
+      [{ name: 'JSON', extensions: ['json'] }]
+  });
+
+  if (canceled || !filePath) return;
+
+  if (tableName === 'all') {
+    // Gather data
+    const whitelist = await getWhitelistAll();
+    const switches = await getSwitchAll();
+    const logs = await getLogs(-1);
+
+    // Create ZIP archive stream
+    const output = fs.createWriteStream(filePath);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    // Listen for errors
+    archive.on('error', err => { throw err; });
+
+    archive.pipe(output);
+
+    // Append each JSON as a separate file inside the zip
+    archive.append(JSON.stringify(removeNulls(whitelist), null, 2), { name: 'whitelist.json' });
+    archive.append(JSON.stringify(removeNulls(switches), null, 2), { name: 'switches.json' });
+    archive.append(JSON.stringify(removeNulls(logs), null, 2), { name: 'logs.json' });
+
+    await archive.finalize();
+
+  } else {
+    // Single JSON export (same as before)
+    let data;
+
+    if (tableName === 'whitelist') {
+      data = await getWhitelistAll();
+    } else if (tableName === 'switches') {
+      data = await getSwitchAll();
+    } else if (tableName === 'logs') {
+      data = await getLogs(-1);
+    }
+
+    fs.writeFileSync(filePath, JSON.stringify(removeNulls(data), null, 2));
+  }
+}
+
+async function createMenu(){
+const template = [
+  {
+    label: 'File',
+    submenu: [
+      {
+        label: 'Export Whitelist',
+        click: async () => {
+          await exportTable('whitelist');
+        }
+      },
+      {
+        label: 'Export Switches',
+        click: async () => {
+          await exportTable('switches');
+        }
+      },
+      {
+        label: 'Export Logs',
+        click: async () => {
+          await exportTable('logs');
+        }
+      },
+      { type: 'separator' },
+      {
+        label: 'Export All',
+        click: async () => {
+          await exportTable('all');
+        }
+      }
+    ]
+  },
+  {
+  label: 'View',
+  submenu: [
+    {
+      role: 'reload'
+    },
+    {
+      role: 'toggledevtools'
+    }
+  ]
+}
+];
+
+  menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
 // When the app is ready, set up the main window, tray, and start the server
 app.whenReady().then(async () => {
   require('./app.js');  // Start the server inside Electron (server script)
 
   createWindow();  // Create the main application window
   createTray();  // Create the system tray icon
+  createMenu(); // Create the menu at the top
 
   // Show a message box indicating that the monitoring server has been activated
   dialog.showMessageBox({
