@@ -122,11 +122,9 @@ router.post('/whitelist', async (req, res) => {
 
 // GET /getIP: Returns the client's IP address (useful for identifying the user)
 router.get('/getIP', (req, res) => {
-    if (req.originalUrl.startsWith('/switches') || req.originalUrl.startsWith('/clients')){
-        const forwarded = req.headers['x-forwarded-for']; // Check for forwarded IP address
-        const ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress; // Get the client's IP
-        res.json({ ip }); // Return the client's IP address as JSON
-    }
+    const forwarded = req.headers['x-forwarded-for']; // Check for forwarded IP address
+    const ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress; // Get the client's IP
+    res.json({ ip }); // Return the client's IP address as JSON
 });
 
 // 🟢 GET all whitelisted users

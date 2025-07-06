@@ -262,7 +262,7 @@ async function fetchClients() {
     tBody.innerHTML = '';
 
     whitelist.forEach(row => {
-      const isDisable = row.ip === userIP || row.ip === "127.0.0.1";
+      console.log(`userIP: ${userIP}   rowIP: ${row.ip}`)
       const disableReason = row.ip === userIP ? "Cannot remove your own IP" : row.ip === "127.0.0.1" ? "Cannot remove hosting PC" : "";
 
       const tr = document.createElement("tr");
@@ -270,7 +270,7 @@ async function fetchClients() {
         <td>${row.ip}</td>
         <td>${row.name}</td>
         <td>
-          <button id="whitelist ${row.ip}" class="red-btn" ${isDisable ? "disabled title='" + disableReason + "'" : ""}
+          <button id="whitelist ${row.ip}" class="red-btn" ${row.ip === userIP ? "disabled title='" + disableReason + "'" : ""}
             onclick="removeWhitelistMenu('${row.ip}', '${row.name}')">
             Remove
           </button>
@@ -291,9 +291,6 @@ async function fetchClients() {
 async function removeWhitelistMenu(clientIp, name) {
   if (clientIp === userIP) {
     alert("You can't remove yourself.");
-    return;
-  } else if (clientIp === "127.0.0.1"){
-    alert("You can't remove hosting pc");
     return;
   }
 

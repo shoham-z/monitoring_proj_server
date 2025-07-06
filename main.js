@@ -47,11 +47,12 @@ function createWindow() {
   // Event handler when the window is about to close
   mainWindow.on('close', (event) => {
     if (quit) {
-      tray.destroy();  // Destroy the tray when quitting
-      app.quit();  // Quit the app
+      tray.destroy();
+      app.quit();
     } else {
-      event.preventDefault();  // Prevent the window from closing
-      mainWindow.hide();  // Hide the window instead of closing it
+      event.preventDefault();       // Prevent full app quit
+      mainWindow.destroy();         // Fully destroy the window
+      mainWindow = null;            // Allow re-creation
     }
   });
 }
@@ -62,15 +63,32 @@ function createTray() {
 
   // Create a context menu for the tray icon
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Show App', click: () => mainWindow.show() },  // Show the app window
-    { label: 'Hide App', click: () => mainWindow.hide() },  // Hide the app window
-    { type: 'separator' },  // Separator line in the context menu
+    {
+      label: 'Open App',
+      click: () => {
+        if (!mainWindow) {
+          createWindow();           // Create a new window if none exists
+          mainWindow.show();
+        } else {
+          mainWindow.show();        // Just show if already created
+        }
+      }
+    },
+    {
+      label: 'Close App',
+      click: () => {
+        if (mainWindow) {
+          mainWindow.close();       // Close (destroy) it
+        }
+      }
+    },
+    { type: 'separator' },
     {
       label: 'Quit',
       click: () => {
-        quit = true;  // Set the quit flag to true
-        tray.destroy();  // Destroy the tray
-        app.quit();  // Quit the app
+        quit = true;
+        tray.destroy();
+        app.quit();
       }
     }
   ]);
@@ -80,9 +98,14 @@ function createTray() {
 
   // Toggle visibility of the window when the tray icon is double-clicked
   tray.on('double-click', () => {
-    if (mainWindow.isVisible()) mainWindow.hide();  // Hide if visible
-    else mainWindow.show();  // Show if hidden
+    if (!mainWindow) {
+      createWindow();
+      mainWindow.show();
+    }
+    else mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show();
   });
+
+  createMenu(); // Create the menu at the top
 }
 
 function removeNulls(obj) {
@@ -261,9 +284,7 @@ async function createMenu() {
 app.whenReady().then(async () => {
   require('./app.js');  // Start the server inside Electron (server script)
 
-  createWindow();  // Create the main application window
   createTray();  // Create the system tray icon
-  createMenu(); // Create the menu at the top
 
   // Show a message box indicating that the monitoring server has been activated
   dialog.showMessageBox({
