@@ -1,8 +1,8 @@
 // Import necessary modules and functions
 const express = require('express');
 const router = express.Router();
-// Import specific functions from 'server_functions.js' for handling switch data, user authentication, etc.
-const { addSwitch, editSwitch, deleteSwitch, getSwitch, getSwitchAll, toggleWhitelist, getWhitelistAll, saveLog, getLogs } = require('./server_functions'); 
+// Import specific functions from 'server_functions.js' for handling device data, user authentication, etc.
+const { addDevice, editDevice, deleteDevice, getDevice, getDeviceAll, toggleWhitelist, getWhitelistAll, saveLog, getLogs } = require('./server_functions'); 
 
 // Set to track the IP addresses of connected clients
 const connectedClients = new Map();
@@ -14,35 +14,35 @@ router.use((req, res, next) => {
     next(); // Pass the request to the next middleware or route handler
 });
 
-// 🟢 GET all switches
+// 🟢 GET all devices
 router.get('/getAll', async (req, res) => {
     try {
-        const switches = await getSwitchAll(); // Fetch all switches from the database
-        //await saveLog("Get Switches", req.socket.remoteAddress);
-        res.status(200).json(switches); // Return the switches as JSON response
+        const devices = await getDeviceAll(); // Fetch all devices from the database
+        //await saveLog("Get Devices", req.socket.remoteAddress);
+        res.status(200).json(devices); // Return the devices as JSON response
     } catch (error) {
-        console.error("Error fetching switches:", error); // Log any errors
+        console.error("Error fetching devices:", error); // Log any errors
         res.status(500).json({ error: "Internal Server Error" }); // Return a 500 status if an error occurs
     }
 });
 
-// 🔵 GET a single switch by IP
+// 🔵 GET a single device by IP
 router.get('/get', async (req, res) => {
     try {
         const { ip } = req.body;
-        const switchData = await getSwitch(ip); // Fetch a single switch based on the provided IP address
-        if (!switchData) {
-            return res.status(404).json({ error: "Switch not found" }); // Return 404 if no switch is found for the given IP
+        const deviceData = await getDevice(ip); // Fetch a single device based on the provided IP address
+        if (!deviceData) {
+            return res.status(404).json({ error: "device not found" }); // Return 404 if no device is found for the given IP
         }
-        //await saveLog("Get Switch", req.socket.remoteAddress);
-        res.status(200).json(switchData); // Return the switch data as JSON response
+        //await saveLog("Get Device", req.socket.remoteAddress);
+        res.status(200).json(deviceData); // Return the device data as JSON response
     } catch (error) {
-        console.error("Error fetching switch:", error); // Log any errors
+        console.error("Error fetching device:", error); // Log any errors
         res.status(500).json({ error: "Internal Server Error" }); // Return 500 status if an error occurs
     }
 });
 
-// 🟡 ADD a switch (POST)
+// 🟡 ADD a device (POST)
 router.post('/add', async (req, res) => {
     const { ip, name } = req.body; // Destructure necessary data from the request body
     if (!ip || !name) {
@@ -50,41 +50,41 @@ router.post('/add', async (req, res) => {
     }
     
     try {
-        await addSwitch(ip, name); // Add the new switch to the database
-        await saveLog("Add Switch", req.socket.remoteAddress, ip, name);
-        res.status(201).json({ message: "Switch added successfully" }); // Return a success message
+        await addDevice(ip, name); // Add the new device to the database
+        await saveLog("Add Device", req.socket.remoteAddress, ip, name);
+        res.status(201).json({ message: "Device added successfully" }); // Return a success message
     } catch (err) {
         if (err?.error) {
-            res.status(409).json(err); // Return 409 if there's a conflict (e.g., switch already exists)
+            res.status(409).json(err); // Return 409 if there's a conflict (e.g., device already exists)
         } else {
-            console.error("Error adding switch:", err); // Log any errors
+            console.error("Error adding device:", err); // Log any errors
             res.status(500).json({ err: "Internal Server Error" }); // Return 500 if an error occurs
         }
     }
 });
 
-// 🔴 DELETE a switch
+// 🔴 DELETE a device
 router.delete('/delete', async (req, res) => {
     try {
-        const { ip, name } = req.body; // Extract the IP address of the switch to be deleted from the request body
-        await deleteSwitch(ip); // Call the function to delete the switch from the database
-        await saveLog("Delete Switch", req.socket.remoteAddress, ip, name);
-        res.status(200).json({ message: "Switch deleted successfully" }); // Return a success message upon deletion
+        const { ip, name } = req.body; // Extract the IP address of the device to be deleted from the request body
+        await deleteDevice(ip); // Call the function to delete the device from the database
+        await saveLog("Delete Device", req.socket.remoteAddress, ip, name);
+        res.status(200).json({ message: "Device deleted successfully" }); // Return a success message upon deletion
     } catch (error) {
-        console.error("Error deleting switch:", error); // Log any errors
+        console.error("Error deleting device:", error); // Log any errors
         res.status(500).json({ error: "Internal Server Error" }); // Return 500 status if an error occurs
     }
 });
 
-// 🟠 EDIT a switch (PUT)
+// 🟠 EDIT a device (PUT)
 router.put('/edit', async (req, res) => {
-    const { id, ip, name, oldIP, oldName } = req.body.data || req.body; // Extract data to edit the switch
+    const { id, ip, name, oldIP, oldName } = req.body.data || req.body; // Extract data to edit the device
     try {
-        const result = await editSwitch(id, ip, name); // Call the function to update the switch in the database
+        const result = await editDevice(id, ip, name); // Call the function to update the device in the database
         if (result?.error) {
             res.status(409).json(result); // Return 409 if there is a conflict (e.g., duplicate data)
         } else {
-            await saveLog("Edit Switch", req.socket.remoteAddress, oldIP, oldName, ip, name);
+            await saveLog("Edit Device", req.socket.remoteAddress, oldIP, oldName, ip, name);
             res.status(200).json({ message: `Edited Successfully!` }); // Return success message if the update is successful
         }
     } catch (err) {
@@ -142,9 +142,9 @@ router.get('/getWhitelistAll', async (req, res) => {
 // GET all logs
 router.get('/getLogs', async (req, res) => {
     try {
-        const switches = await getLogs(); // Fetch all logs from the database
+        const devices = await getLogs(); // Fetch all logs from the database
         //await saveLog("Get Logs", req.socket.remoteAddress);
-        res.status(200).json(switches); // Return the switches as JSON response
+        res.status(200).json(devices); // Return the devices as JSON response
     } catch (error) {
         console.error("Error fetching logs:", error); // Log any errors
         res.status(500).json({ error: "Internal Server Error" }); // Return a 500 status if an error occurs

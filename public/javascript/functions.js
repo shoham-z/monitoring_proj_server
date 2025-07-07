@@ -31,23 +31,23 @@ function errorText(text, id = "invalid-input") {
   el.style.display = "block"; // Make the error message visible
 }
 
-// Function to load all switches data from the server
-async function loadSwitchData() {
+// Function to load all devices data from the server
+async function loadDeviceData() {
   try {
     const res = await fetch(`${url}/api/getAll`);
 
     // If the response is not OK, throw an error
     if (!res.ok) throw new Error("Server error");
 
-    // Parse the response as JSON to get the switches data
-    const switches = await res.json();
+    // Parse the response as JSON to get the devices data
+    const devices = await res.json();
 
     // If the user is not authorized or forbidden, redirect to blocked page
-    if (res.status === 403 && switches.redirect){return window.location.href = switches.redirect;}
+    if (res.status === 403 && devices.redirect){return window.location.href = devices.redirect;}
 
     const tbody = document.querySelector("tbody");
-    // Populate the table with the switches data
-    tbody.innerHTML = switches.map(row => `
+    // Populate the table with the devices data
+    tbody.innerHTML = devices.map(row => `
       <tr>
         <td>${row.ip}</td>
         <td>${row.name}</td>
@@ -95,7 +95,7 @@ function showSuccessMessage(message) {
   }, 5000);
 }
 
-// Function to submit a form (add, edit, or delete switch data)
+// Function to submit a form (add, edit, or delete device data)
 async function submitForm(request, method, body, successMessage) {
   try {
     const res = await fetch(`${url}/api/${request}`, {
@@ -108,10 +108,10 @@ async function submitForm(request, method, body, successMessage) {
 
     // Handle session expiry or IP block
     if (res.status === 403 && data.redirect){return window.location.href = data.redirect;}
-    // If no error in the response, show success message and reload switch data
+    // If no error in the response, show success message and reload device data
     if (!data?.error) {
       showSuccessMessage(successMessage);
-      loadSwitchData().then(filterTable);
+      loadDeviceData().then(filterTable);
       toggleMenu("Menu", true);
     } else {
       // Show error if IP and name are not unique
@@ -124,7 +124,7 @@ async function submitForm(request, method, body, successMessage) {
   }
 }
 
-// Function to handle editing a switch
+// Function to handle editing a device
 function edit(e) {
   e.preventDefault();
   const ipEl = document.getElementById("IP Address");
@@ -140,7 +140,7 @@ function edit(e) {
   submitForm("edit", "PUT", { id, ip, name, oldIP, oldName }, "Edited Successfully!");
 }
 
-// Function to handle adding a switch
+// Function to handle adding a device
 function add(e) {
   e.preventDefault();
   const ip = document.getElementById("IP Address").value;
@@ -151,18 +151,18 @@ function add(e) {
   submitForm("add", "POST", { ip, name }, "Added Successfully!");
 }
 
-// Function to handle deleting a switch
+// Function to handle deleting a device
 function deleteRow(ip, name) {
   document.getElementById("deleteH1").textContent = `Name: ${name} \n IP: ${ip}`;
   toggleMenu("deleteMenu");
-  // On confirmation, call submitForm to delete the switch
+  // On confirmation, call submitForm to delete the device
   document.getElementById('confirmDelete').onclick = () => {
     submitForm("delete", "DELETE", { ip, name }, "Deleted Successfully!");
     document.getElementById('deleteMenu').style.display = 'none';
   };
 }
 
-// Function to set up the menu for editing or adding a switch
+// Function to set up the menu for editing or adding a device
 function setMenu(menuType, ip, name, id) {
   const ipEl = document.getElementById("IP Address");
   const nameEl = document.getElementById("Name");
@@ -392,7 +392,7 @@ function addWhitelistMenu(){
       }
     }
     const data = await res.json();
-    // If no error in the response, show success message and reload switch data
+    // If no error in the response, show success message and reload clients data data
     if (!data?.error) {
       showSuccessMessage("IP was successfully added to the whitelist");
       fetchClients();
@@ -424,10 +424,9 @@ async function loadLogs() {
     if (res.status === 403 && logs.redirect){return window.location.href = logs.redirect;}
 
     const tbody = document.querySelector("tbody");
-    // Populate the table with the switches data
+    // Populate the table with the devices data
     tbody.innerHTML = logs.map(row => `
       <tr>
-        <td>${row.id}</td>
         <td>${row.type}</td>
         <td>${msToString(row.time)}</td>
         <td>${row.clientIP}</td>
@@ -474,10 +473,10 @@ function filterLogs() {
 document.addEventListener("DOMContentLoaded", function () {
   switch (window.location.pathname){
     case "/":
-    case "/switches": {
-      // Load switch data
-      loadSwitchData();
-      setInterval(() => {loadSwitchData().then(filterTable);}, 5000);
+    case "/devices": {
+      // Load device data
+      loadDeviceData();
+      setInterval(() => {loadDeviceData.then(filterTable);}, 5000);
 
       // Enable draggable menus
       dragable("Menu");

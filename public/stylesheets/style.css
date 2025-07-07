@@ -229,7 +229,7 @@ select option {
   white-space: pre-line;                   /* Preserve line breaks */
 }
 /* Layout styling for different content pages */
-.switches-page, .clients-page, .logs-page {
+.devices-page, .clients-page, .logs-page {
   display: flex;
   flex-direction: column;
   align-items: center;

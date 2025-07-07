@@ -57,16 +57,16 @@ app.use("/api", async (req, res, next) => {
 // Use the API router to handle requests under the /api path
 app.use('/api', router);
 
-// Serve the switches page when accessing the root URL ('/')
+// Serve the device page when accessing the root URL ('/')
 app.get('/', async (req, res) => {
-    if (await isAllowed(req)){res.sendFile(path.join(__dirname, 'public', 'switches.html'));}
-    else {res.status(403).sendFile(path.join(__dirname, 'public', 'blocked.html'));} // Send the switches.html file as a response
+    if (await isAllowed(req)){res.sendFile(path.join(__dirname, 'public', 'devices.html'));}
+    else {res.status(403).sendFile(path.join(__dirname, 'public', 'blocked.html'));} // Send the devices.html file as a response
 });
 
-// Serve the switches page, only if the user is authenticated
-app.get('/switches', async (req, res) => {
-    if (await isAllowed(req)){res.sendFile(path.join(__dirname, 'public', 'switches.html'));}
-    else {res.status(403).sendFile(path.join(__dirname, 'public', 'blocked.html'));} // Send the switches.html page as a response
+// Serve the devices page, only if the user is authenticated
+app.get('/devices', async (req, res) => {
+    if (await isAllowed(req)){res.sendFile(path.join(__dirname, 'public', 'devices.html'));}
+    else {res.status(403).sendFile(path.join(__dirname, 'public', 'blocked.html'));} // Send the devices.html page as a response
 });
 
 // Serve the clients page, only if the user is authenticated
@@ -82,7 +82,7 @@ app.get('/logs', async (req, res) => {
 });
 
 // Serve static files (e.g., images, stylesheets) from the 'public' directory
-app.use(express.static(path.join(__dirname, 'public'), { index: 'switches.html' }));
+app.use(express.static(path.join(__dirname, 'public'), { index: 'devices.html' }));
 
 // Start the server and listen on port 3001, accessible from all IP addresses (0.0.0.0)
 app.listen(3001, '0.0.0.0');

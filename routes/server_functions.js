@@ -18,9 +18,9 @@ let db = new sqlite.Database(dbPath, (err) => {
 });
 
 // Add new switch
-async function addSwitch(ip, name) {
+async function addDevice(ip, name) {
   return new Promise((resolve, reject) => {
-    db.run(`INSERT INTO switches (ip, name) VALUES (?, ?)`, [ip, name], function (err) {
+    db.run(`INSERT INTO devices (ip, name) VALUES (?, ?)`, [ip, name], function (err) {
       if (err) {
         if (err.message.includes("UNIQUE")) reject({ error: 'IP and name must be unique' });
         else reject(err);
@@ -29,20 +29,20 @@ async function addSwitch(ip, name) {
   });
 }
 
-// Delete switch by IP
-async function deleteSwitch(ip) {
+// Delete device by IP
+async function deleteDevice(ip) {
   return new Promise((resolve, reject) => {
-    db.run(`DELETE FROM switches WHERE ip = ?`, [ip], function (err) {
+    db.run(`DELETE FROM devices WHERE ip = ?`, [ip], function (err) {
       if (err) reject(err);
       else resolve();
     });
   });
 }
 
-// Edit switch by ID
-async function editSwitch(id, ip, name) {
+// Edit device by ID
+async function editDevice(id, ip, name) {
   return new Promise((resolve, reject) => {
-    db.run(`UPDATE switches SET ip = ?, name = ? WHERE id = ?`, [ip, name, id], function (err) {
+    db.run(`UPDATE devices SET ip = ?, name = ? WHERE id = ?`, [ip, name, id], function (err) {
       if (err) {
         if (err.message.includes("UNIQUE")) reject({ error: 'IP and name must be unique' });
         else reject(err);
@@ -51,20 +51,20 @@ async function editSwitch(id, ip, name) {
   });
 }
 
-// Get switch by IP
-async function getSwitch(ip) {
+// Get devce by IP
+async function getDevice(ip) {
   return new Promise((resolve, reject) => {
-    db.get(`SELECT * FROM switches WHERE ip = ?`, [ip], (err, row) => {
+    db.get(`SELECT * FROM devices WHERE ip = ?`, [ip], (err, row) => {
       if (err) reject(err);
       else resolve(row);
     });
   });
 }
 
-// Get all switches
-async function getSwitchAll() {
+// Get all devices
+async function getDeviceAll() {
   return new Promise((resolve, reject) => {
-    db.all(`SELECT * FROM switches`, (err, rows) => {
+    db.all(`SELECT * FROM devices`, (err, rows) => {
       if (err) reject(err);
       else resolve(rows);
     });
@@ -143,7 +143,7 @@ async function getLogs(page = 1) {
 
 /**
  * Inserts rows from a JSON file into the specified table (excluding 'id').
- * @param {string} tableName - The table to insert into: 'whitelist', 'switches', or 'logs'.
+ * @param {string} tableName - The table to insert into: 'whitelist', 'devices', or 'logs'.
  * @param {string} filePath - Absolute path to the JSON file to import.
  */
 async function insertTable(tableName, rows) {
@@ -155,7 +155,7 @@ async function insertTable(tableName, rows) {
       case 'whitelist':
         columns = ['ip', 'name'];
         break;
-      case 'switches':
+      case 'devices':
         columns = ['ip', 'name'];
         break;
       case 'logs':
@@ -192,11 +192,11 @@ async function insertTable(tableName, rows) {
 }
 
 module.exports = {
-  addSwitch,
-  editSwitch,
-  deleteSwitch,
-  getSwitch,
-  getSwitchAll,
+  addDevice,
+  editDevice,
+  deleteDevice,
+  getDevice,
+  getDeviceAll,
   isWhitelisted,
   toggleWhitelist,
   getWhitelistAll,

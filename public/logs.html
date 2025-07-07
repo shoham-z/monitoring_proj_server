@@ -8,7 +8,7 @@
 </head>
 
 <body class="logs-page">
-  <button class="purple-btn" onclick="location.href='/switches'">Switches</button>
+  <button class="purple-btn" onclick="location.href='/devices'">Devices</button>
   <button class="purple-btn" onclick="location.href='/clients'">Clients</button>
 
   <h1 id="title">Logs</h1>
@@ -17,11 +17,10 @@
   <input type="text" id="search-bar" placeholder="Search Here" onkeyup="filterLogs()">
 
   <!-- Table container with scroll functionality -->
-  <div id="table-container" style="width: 875px;">
+  <div id="table-container" style="width: 900px;">
     <table>
       <thead>
         <tr>
-          <th>Index</th>
           <th>Type</th>
           <th>Time</th>
           <th>Actor</th>
