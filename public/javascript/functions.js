@@ -18,6 +18,22 @@ let userIP = "";
   }
 })();
 
+let host = "";
+// Immediately Invoked Function Expression (IIFE) to fetch host IP address
+(async () => {
+  try {
+    // Make an API call to get the host's IP address
+    const res = await fetch(`${url}/api/getHost`);
+    // If the request is forbidden (403), stop the execution
+    if (res.status === 403){ return; }
+    // Parse the JSON response and store the IP in the variable
+    host = await res.json();
+  } catch (err) {
+    // Log an error if the request fails
+    console.error("Failed to fetch host IP:", err);
+  }
+})();
+
 // Function to validate if an input is a valid IPv4 address
 // It uses a regex pattern to check if the input matches a valid IPv4 address format
 function isValidIp(ip) {
@@ -263,7 +279,7 @@ async function fetchClients() {
 
     whitelist.forEach(row => {
       console.log(`userIP: ${userIP}   rowIP: ${row.ip}`)
-      const disableReason = row.ip === userIP ? "Cannot remove your own IP" : row.ip === "127.0.0.1" ? "Cannot remove hosting PC" : "";
+      const disableReason = row.ip === host ? "Cannot remove hosting PC" : row.ip === userIP ? "Cannot remove your own IP" : "";
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
@@ -427,13 +443,13 @@ async function loadLogs() {
     // Populate the table with the devices data
     tbody.innerHTML = logs.map(row => `
       <tr>
-        <td>${row.type}</td>
+        <td>${row.type === "null" ? "" : row.type}</td>
         <td>${msToString(row.time)}</td>
-        <td>${row.clientIP}</td>
-        <td>${row.ip}</td>
-        <td>${row.name}</td>
-        <td>${row.newIP || ""}</td>
-        <td>${row.newName || ""}</td>
+        <td>${row.clientIP === "null" ? "" : row.clientIP}</td>
+        <td>${row.ip === "null" ? "" : row.ip}</td>
+        <td>${row.name === "null" ? "" : row.name}</td>
+        <td>${row.newIP === "null" ? "" : row.newIP || ""}</td>
+        <td>${row.newName === "null" ? "" : row.newName || ""}</td>
       </tr>`).join("");
 
   } catch {

@@ -5,6 +5,7 @@ const cors = require('cors'); // CORS (Cross-Origin Resource Sharing) middleware
 const cookieParser = require('cookie-parser'); // Middleware to parse cookies
 const logger = require('morgan'); // HTTP request logger middleware
 const { isWhitelisted } = require('./routes/server_functions'); // Import functions for authentication and IP blocking
+require('dotenv').config({ quiet: true });
 
 // Import API router for handling API requests
 const { router } = require('./routes/api');
@@ -85,7 +86,7 @@ app.get('/logs', async (req, res) => {
 app.use(express.static(path.join(__dirname, 'public'), { index: 'devices.html' }));
 
 // Start the server and listen on port 3001, accessible from all IP addresses (0.0.0.0)
-app.listen(3001, '0.0.0.0');
+app.listen(process.env.PORT, '0.0.0.0');
 
 // Export the app for potential testing or external use
 module.exports = app;

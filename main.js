@@ -4,7 +4,9 @@ const path = require('path');  // Module for handling and transforming file path
 const fs = require('fs');
 const archiver = require('archiver');
 const unzipper = require('unzipper');
-const { getSwitchAll, getLogs, getWhitelistAll, insertTable} = require('./routes/server_functions.js');
+const os = require('os');
+const { getDeviceAll, getLogs, getWhitelistAll, insertTable, saveLog} = require('./routes/server_functions.js');
+require('dotenv').config({ quiet: true });
 
 // Check if the app is in development mode or production
 const isDev = !app.isPackaged;  // If the app is not packaged, it is in development mode
@@ -42,7 +44,7 @@ function createWindow() {
   });
 
   // Load the app's URL or local server page
-  mainWindow.loadURL('http://10.0.0.17:3001');
+  mainWindow.loadURL(`http://${process.env.HOST}:${process.env.PORT}`);
 
   // Event handler when the window is about to close
   mainWindow.on('close', (event) => {
@@ -108,6 +110,23 @@ function createTray() {
   createMenu(); // Create the menu at the top
 }
 
+function getLocalIP(includeInternal = true) {
+  const interfaces = os.networkInterfaces();
+  const addresses = [];
+
+  for (const iface of Object.values(interfaces)) {
+    for (const addr of iface) {
+      if (addr.family === 'IPv4') {
+        if (includeInternal || !addr.internal) {
+          addresses.push(addr.address);
+        }
+      }
+    }
+  }
+
+  return addresses.length > 0 ? addresses[0] : '127.0.0.1';
+}
+
 function removeNulls(obj) {
   if (Array.isArray(obj)) {
     return obj.map(removeNulls);
@@ -137,7 +156,7 @@ async function exportTable(tableName) {
   if (tableName === 'all') {
     // Gather data
     const whitelist = await getWhitelistAll();
-    const switches = await getSwitchAll();
+    const devices = await getDeviceAll();
     const logs = await getLogs(-1);
 
     // Create ZIP archive stream
@@ -151,10 +170,11 @@ async function exportTable(tableName) {
 
     // Append each JSON as a separate file inside the zip
     archive.append(JSON.stringify(removeNulls(whitelist), null, 2), { name: 'whitelist.json' });
-    archive.append(JSON.stringify(removeNulls(switches), null, 2), { name: 'switches.json' });
+    archive.append(JSON.stringify(removeNulls(devices), null, 2), { name: 'devices.json' });
     archive.append(JSON.stringify(removeNulls(logs), null, 2), { name: 'logs.json' });
 
     await archive.finalize();
+    saveLog("Export All", getLocalIP(), "null", "null");
 
   } else {
     // Single JSON export (same as before)
@@ -162,13 +182,14 @@ async function exportTable(tableName) {
 
     if (tableName === 'whitelist') {
       data = await getWhitelistAll();
-    } else if (tableName === 'switches') {
-      data = await getSwitchAll();
+    } else if (tableName === 'devices') {
+      data = await getDeviceAll();
     } else if (tableName === 'logs') {
       data = await getLogs(-1);
     }
 
     fs.writeFileSync(filePath, JSON.stringify(removeNulls(data), null, 2));
+    saveLog(`Export ${tableName.charAt(0).toUpperCase() + tableName.slice(1)}`, getLocalIP(), "null", "null");
   }
 }
 
@@ -193,7 +214,7 @@ async function importTable(tableName) {
       .pipe(unzipper.Extract({ path: tempDir }))
       .promise();
 
-    const tables = ['whitelist', 'switches', 'logs'];
+    const tables = ['whitelist', 'devices', 'logs'];
     for (const tbl of tables) {
       const jsonPath = path.join(tempDir, `${tbl}.json`);
       if (fs.existsSync(jsonPath)) {
@@ -204,16 +225,17 @@ async function importTable(tableName) {
     }
 
     fs.rmSync(tempDir, { recursive: true, force: true });
+    saveLog(`Import All`, getLocalIP(), "null", "null");
 
   } else {
     const raw = fs.readFileSync(filePath, 'utf8');
     const data = JSON.parse(raw);
     await insertTable(tableName, data);
+    saveLog(`Import ${tableName.charAt(0).toUpperCase() + tableName.slice(1)}`, getLocalIP(), "null", "null");
   }
 
   console.log(`Imported data for ${tableName} successfully.`);
 }
-
 
 async function createMenu() {
   const template = [
@@ -228,8 +250,8 @@ async function createMenu() {
               click: async () => await exportTable('whitelist')
             },
             {
-              label: 'Switches',
-              click: async () => await exportTable('switches')
+              label: 'Devices',
+              click: async () => await exportTable('devices')
             },
             {
               label: 'Logs',
@@ -250,8 +272,8 @@ async function createMenu() {
               click: async () => await importTable('whitelist')
             },
             {
-              label: 'Switches',
-              click: async () => await importTable('switches')
+              label: 'Devices',
+              click: async () => await importTable('devices')
             },
             {
               label: 'Logs',
