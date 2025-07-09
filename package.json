@@ -22,16 +22,24 @@
     ],
     "extraResources": [
       {
-        "from": "resources/database.db",
-        "to": "database.db"
-      },
-      {
         "from": "public/assets/apple.ico",
         "to": "apple.ico"
       },
       {
+        "from": "resources/database.db",
+        "to": "database.db"
+      },
+      {
         "from": "resources/DB.Browser.for.SQLite-v3.13.1-win64",
         "to": "DB.Browser.for.SQLite-v3.13.1-win64"
+      },
+      {
+        "from": "resources/backups",
+        "to": "backups"
+      },
+      {
+        "from": ".env",
+        "to": ".env"
       }
     ],
     "win": {

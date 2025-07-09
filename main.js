@@ -6,11 +6,12 @@ const archiver = require('archiver');
 const unzipper = require('unzipper');
 const os = require('os');
 const { getDeviceAll, getLogs, getWhitelistAll, insertTable, saveLog} = require('./routes/server_functions.js');
-require('dotenv').config({ quiet: true });
 
 // Check if the app is in development mode or production
 const isDev = !app.isPackaged;  // If the app is not packaged, it is in development mode
 const appRoot = isDev ? __dirname : path.join(process.resourcesPath);  // Set the app root path based on the environment
+if (isDev){require('dotenv').config({ quiet: true });}
+else {require('dotenv').config({ path: path.join(process.resourcesPath, '.env'), quiet: true });}
 
 // Set the appropriate icon path based on whether the app is in development or production
 let iconPath;
@@ -22,7 +23,6 @@ if (!isDev){
 
 let tray;  // Tray object to handle the system tray icon
 let mainWindow;  // Main application window
-let menu; // Menu bar
 
 let quit = false;  // Flag to track whether the user wants to quit the app
 

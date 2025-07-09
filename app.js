@@ -5,7 +5,12 @@ const cors = require('cors'); // CORS (Cross-Origin Resource Sharing) middleware
 const cookieParser = require('cookie-parser'); // Middleware to parse cookies
 const logger = require('morgan'); // HTTP request logger middleware
 const { isWhitelisted } = require('./routes/server_functions'); // Import functions for authentication and IP blocking
-require('dotenv').config({ quiet: true });
+
+const dotenv = require('dotenv');
+const basePath = process.env.IS_PACKAGED === 'true'
+  ? path.dirname(process.execPath)
+  : __dirname;
+dotenv.config({ path: path.join(basePath, '.env'), quiet: true });
 
 // Import API router for handling API requests
 const { router } = require('./routes/api');
@@ -13,13 +18,9 @@ const app = express(); // Create a new Express application
 
 app.use((req, res, next) => {
   const host = req.headers.host;
-  const ip = req.ip || req.socket.remoteAddress;
 
   // Block access if the host header contains "localhost" or "127.0.0.1"
-  if (host.includes('localhost') || host.includes('127.0.0.1')) {
-    console.warn(`Blocked localhost access: ${host} from ${ip}`);
-    return res.status(404);
-  }
+  if (host.includes('localhost') || host.includes('127.0.0.1')) {return res.status(404);}
   next();
 });
 
