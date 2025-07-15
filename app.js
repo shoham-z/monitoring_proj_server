@@ -18,7 +18,6 @@ const app = express(); // Create a new Express application
 
 app.use((req, res, next) => {
   const host = req.headers.host;
-
   // Block access if the host header contains "localhost" or "127.0.0.1"
   if (host.includes('localhost') || host.includes('127.0.0.1')) {return res.status(404);}
   next();
@@ -33,12 +32,6 @@ app.use((req, res, next) => {
 
 // Set up EJS as the view engine
 app.set('view engine', 'ejs');
-
-// Set up CORS to allow cross-origin requests with credentials
-app.use(cors({
-    origin: true, // Allow requests from all origins (can specify a domain in production)
-    credentials: true  // Allow cookies and credentials in cross-origin requests
-}));
 
 // HTTP request logging middleware (logs all HTTP requests)
 app.use(logger('dev'));
@@ -58,6 +51,13 @@ app.use("/api", async (req, res, next) => {
 
 // Use the API router to handle requests under the /api path
 app.use('/api', router);
+
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html')) {
+    return res.status(404);
+  }
+  next();
+});
 
 // Serve the device page when accessing the root URL ('/')
 app.get('/', async (req, res) => {
@@ -86,7 +86,7 @@ app.get('/logs', async (req, res) => {
 // Serve static files (e.g., images, stylesheets) from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public'), { index: 'devices.html' }));
 
-// Start the server and listen on port 3001, accessible from all IP addresses (0.0.0.0)
+// Start the server and listen on a specific port, accessible from all IP addresses (0.0.0.0)
 app.listen(process.env.PORT, '0.0.0.0');
 
 // Export the app for potential testing or external use
@@ -94,6 +94,5 @@ module.exports = app;
 
 async function isAllowed(req){
     const ip = req.socket.remoteAddress;  // Get the client IP
-    const row = await isWhitelisted(ip); // Check if the IP is whitelisted
-    return ip === "127.0.0.1" || Boolean(row);
+    return ip === process.env.HOST || await isWhitelisted(ip);
 }

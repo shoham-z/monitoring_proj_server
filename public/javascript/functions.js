@@ -18,21 +18,23 @@ let userIP = "";
   }
 })();
 
-let host = "";
-// Immediately Invoked Function Expression (IIFE) to fetch host IP address
-(async () => {
-  try {
+async function isHost(ip){
+    try {
     // Make an API call to get the host's IP address
-    const res = await fetch(`${url}/api/getHost`);
+    const res = await fetch(`${url}/api/isHost`, {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({userIP: ip})
+    });
     // If the request is forbidden (403), stop the execution
     if (res.status === 403){ return; }
     // Parse the JSON response and store the IP in the variable
-    host = await res.json();
+    return await res.json();
   } catch (err) {
     // Log an error if the request fails
     console.error("Failed to fetch host IP:", err);
   }
-})();
+}
 
 // Function to validate if an input is a valid IPv4 address
 // It uses a regex pattern to check if the input matches a valid IPv4 address format
@@ -52,14 +54,14 @@ async function loadDeviceData() {
   try {
     const res = await fetch(`${url}/api/getAll`);
 
+    // If the user is not authorized or forbidden, redirect to blocked page
+    if (res.status === 403){return showBlocked();}
+
     // If the response is not OK, throw an error
     if (!res.ok) throw new Error("Server error");
 
     // Parse the response as JSON to get the devices data
-    const devices = await res.json();
-
-    // If the user is not authorized or forbidden, redirect to blocked page
-    if (res.status === 403 && devices.redirect){return window.location.href = devices.redirect;}
+    const devices = await res.json()
 
     const tbody = document.querySelector("tbody");
     // Populate the table with the devices data
@@ -73,12 +75,19 @@ async function loadDeviceData() {
         </td>
       </tr>`).join("");
 
+      filterTable();
+
+    document.querySelectorAll("button:not(.gray-btn)").forEach(btn => btn.disabled = false);
+    const title = document.getElementById("title");
+    title.textContent = "Devices";
+    title.className = "";
+
   } catch {
     // If an error occurs, display an offline message and disable buttons
     const title = document.getElementById("title");
     title.className = "closed";
     title.textContent = "The Server Is Offline";
-    document.querySelectorAll("button:not(.cancel-btn)").forEach(btn => btn.disabled = true);
+    document.querySelectorAll("button:not(.gray-btn)").forEach(btn => btn.disabled = true);
   }
 }
 
@@ -123,11 +132,11 @@ async function submitForm(request, method, body, successMessage) {
     const data = await res.json();
 
     // Handle session expiry or IP block
-    if (res.status === 403 && data.redirect){return window.location.href = data.redirect;}
+    if (res.status === 403 && data.redirect){return showBlocked();}
     // If no error in the response, show success message and reload device data
     if (!data?.error) {
       showSuccessMessage(successMessage);
-      loadDeviceData().then(filterTable);
+      loadDeviceData();
       toggleMenu("Menu", true);
     } else {
       // Show error if IP and name are not unique
@@ -237,17 +246,12 @@ function dragable(menuID) {
 async function fetchClients() {
   try {
     const res = await fetch(`${url}/api/clients`);
-
-    // Parse the response and display the clients in a table
     const clients = await res.json();
 
-    // Handle session expiry or IP block
-  if (res.status === 403 && clients.redirect){return window.location.href = clients.redirect;}
+    if (res.status === 403 && clients.redirect){showBlocked();}
 
-    const tableBody = document.getElementById('clients-table-body');
-    tableBody.innerHTML = '';
-
-    clients.forEach(client => {
+    // Build clients table rows as a single HTML string
+    const clientRows = clients.map(client => {
       const date = new Date(client[1]);
       const options = {
         timeZone: 'Asia/Jerusalem',
@@ -259,49 +263,64 @@ async function fetchClients() {
         minute: '2-digit',
         second: '2-digit'
       };
-
       const time = date.toLocaleString('en-GB', options);
-      const tr = document.createElement("tr");
+      return `<tr><td>${client[0]}</td><td>${time}</td></tr>`;
+    }).join("");
 
-      tr.innerHTML = `
-        <td>${client[0]}</td>
-        <td>${time}</td>
-      `;
-      tableBody.appendChild(tr);
-    });
+    // Update the clients table all at once
+    const tableBody = document.getElementById('clients-table-body');
+    tableBody.innerHTML = clientRows;
 
+    // Fetch whitelist
     const response = await fetch(`${url}/api/getWhitelistAll`);
     const whitelist = await response.json();
-    // Handle session expiry or IP whitelist
-    if (res.status === 403 && whitelist.redirect){return window.location.href = whitelist.redirect;}
+
+    if (res.status === 403 && whitelist.redirect) {showBlocked();}
+
+    document.querySelectorAll("button:not(.gray-btn)").forEach(btn => btn.disabled = false);
+
+    // Build whitelist table rows using Promise.all to handle async host check
+    const whitelistRows = await Promise.all(
+      whitelist.map(async row => {
+        const host = await isHost(row.ip);
+        const disableReason = host
+          ? "Cannot remove hosting PC"
+          : row.ip === userIP
+          ? "Cannot remove your own IP"
+          : "";
+        const disabledAttr = (row.ip === userIP || host)
+          ? `disabled title="${disableReason}"`
+          : "";
+
+        return `
+          <tr>
+            <td>${row.ip}</td>
+            <td>${row.name}</td>
+            <td>
+              <button id="whitelist ${row.ip}" class="red-btn" ${disabledAttr}
+                onclick="removeWhitelistMenu('${row.ip}', '${row.name}')">
+                Remove
+              </button>
+            </td>
+          </tr>`;
+      })
+    );
+
+    // Update the whitelist table all at once
     const tBody = document.getElementById('whitelist-table-body');
-    tBody.innerHTML = '';
+    tBody.innerHTML = whitelistRows.join("");
 
-    whitelist.forEach(row => {
-      console.log(`userIP: ${userIP}   rowIP: ${row.ip}`)
-      const disableReason = row.ip === host ? "Cannot remove hosting PC" : row.ip === userIP ? "Cannot remove your own IP" : "";
+    const title = document.getElementById("title");
+    title.textContent = "Connected Clients";
+    title.className = "";
 
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${row.ip}</td>
-        <td>${row.name}</td>
-        <td>
-          <button id="whitelist ${row.ip}" class="red-btn" ${row.ip === userIP ? "disabled title='" + disableReason + "'" : ""}
-            onclick="removeWhitelistMenu('${row.ip}', '${row.name}')">
-            Remove
-          </button>
-        </td>
-      `;
-      tBody.appendChild(tr);
-    })
   } catch (err) {
     console.error("Failed to fetch clients:", err);
     const title = document.getElementById("title");
     title.textContent = "The Server is offline";
     title.className = "closed";
-    document.querySelectorAll("button:not(.cancel-btn)").forEach(btn => btn.disabled = true);
+    document.querySelectorAll("button:not(.gray-btn)").forEach(btn => btn.disabled = true);
   }
-
 }
 
 async function removeWhitelistMenu(clientIp, name) {
@@ -341,13 +360,7 @@ async function removeWhitelistMenu(clientIp, name) {
         body: JSON.stringify({ isWhitelisted: true, clientIp, name }),
       });
 
-    if (res.status === 403)
-      {
-        const data = res.json();
-        if (data.redirect){
-          return window.location.href = data.redirect;
-        }
-      }
+    if (res.status === 403){showBlocked();}
       showSuccessMessage(`IP was removed successfully`);
 
       // Reload the client list
@@ -398,10 +411,7 @@ function addWhitelistMenu(){
     // Handle session expiry or IP block
     switch (res.status){
       case 403: {
-        const data = res.json();
-        if (data.redirect){
-          return window.location.href = data.redirect;
-        }
+        return showBlocked();
       }
       case 409: {
         return errorText("IP and name must be unique");
@@ -425,19 +435,30 @@ function addWhitelistMenu(){
   };
 }
 
+function showBlocked() {
+    // If an error occurs, display an offline message and disable buttons
+    const title = document.getElementById("title");
+    title.className = "closed";
+    title.textContent = "You are not authorized!";
+    document.querySelectorAll("button:not(.gray-btn)").forEach(btn => btn.disabled = true);
+    document.querySelectorAll("tbody").forEach(tbody => {tbody.innerHTML = "";});
+    document.querySelectorAll("h1").forEach(h1 => {if (h1.id !== "title")h1.textContent = "";})
+}
+
+
 // Function to load all logs data from the server
 async function loadLogs() {
   try {
     const res = await fetch(`${url}/api/getLogs`);
+
+    // If the user is not authorized or forbidden, redirect to blocked page
+    if (res.status === 403){return showBlocked();}
 
     // If the response is not OK, throw an error
     if (!res.ok) throw new Error("Server error");
 
     // Parse the response as JSON to get the logs data
     const logs = await res.json();
-
-    // If the user is not authorized or forbidden, redirect to blocked page
-    if (res.status === 403 && logs.redirect){return window.location.href = logs.redirect;}
 
     const tbody = document.querySelector("tbody");
     // Populate the table with the devices data
@@ -452,12 +473,19 @@ async function loadLogs() {
         <td>${row.newName === "null" ? "" : row.newName || ""}</td>
       </tr>`).join("");
 
-  } catch {
+      filterLogs();
+
+    document.querySelectorAll("button:not(.gray-btn)").forEach(btn => btn.disabled = false);
+    const title = document.getElementById("title");
+    title.textContent = "Logs";
+    title.className = "";
+
+  } catch(err) {
     // If an error occurs, display an offline message and disable buttons
     const title = document.getElementById("title");
     title.className = "closed";
     title.textContent = "The Server Is Offline";
-    document.querySelectorAll("button:not(.cancel-btn)").forEach(btn => btn.disabled = true);
+    document.querySelectorAll("button:not(.gray-btn)").forEach(btn => btn.disabled = true);
   }
 }
 
@@ -492,7 +520,7 @@ document.addEventListener("DOMContentLoaded", function () {
     case "/devices": {
       // Load device data
       loadDeviceData();
-      setInterval(() => {loadDeviceData.then(filterTable);}, 5000);
+      setInterval(() => {loadDeviceData();}, 5000);
 
       // Enable draggable menus
       dragable("Menu");
@@ -511,7 +539,7 @@ document.addEventListener("DOMContentLoaded", function () {
     case "/logs": {
       //Load logs
       loadLogs();
-      setInterval(() => {loadLogs().then(filterLogs);}, 5000);
+      setInterval(() => {loadLogs();}, 5000);
       break;
     }
   }

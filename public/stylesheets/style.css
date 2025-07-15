@@ -12,6 +12,7 @@ body {
   justify-content: center;                 /* Horizontally center content */
   align-items: center;                     /* Vertically center content */
   background: url('../assets/Background.png') center/cover no-repeat; /* Background image fills and centers */
+  caret-color: transparent;
 }
 
 /* === TYPOGRAPHY === */
@@ -141,6 +142,7 @@ input[type="text"] {
   border-radius: 6px;
   box-sizing: border-box;                  /* Padding included in width */
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  caret-color: auto;
 }
 /* Focus effect for inputs */
 input[type="text"]:focus {
@@ -150,31 +152,6 @@ input[type="text"]:focus {
 /* Placeholder text styling */
 input::placeholder {
   color: #aaa;
-}
-
-select {
-  width: 25%;
-  padding: 10px;
-  margin: 10px 0;
-  font-size: 16px;
-  background-color: #38343c;   /* Match input background */
-  color: white;
-  border: 1px solid #555;      /* Subtle border */
-  border-radius: 6px;
-  box-sizing: border-box;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-/* Focus effect like input[type="text"]:focus */
-select:focus {
-  outline: none;
-  border: 1px solid #569fcc;
-}
-
-/* Option styling (optional, improves readability) */
-select option {
-  background-color: #38343c;
-  color: white;
 }
 
 /* === MENU & POPUPS === */
@@ -219,6 +196,7 @@ select option {
   font-size: 16px;
   border-radius: 5px;
   text-align: center;
+  caret-color: auto;
 }
 
 /* === ERROR, SCROLLBAR, LAYOUT === */
@@ -229,7 +207,7 @@ select option {
   white-space: pre-line;                   /* Preserve line breaks */
 }
 /* Layout styling for different content pages */
-.devices-page, .clients-page, .logs-page {
+.devices-page, .clients-page, .logs-page, .blocked-page {
   display: flex;
   flex-direction: column;
   align-items: center;

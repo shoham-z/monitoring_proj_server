@@ -1,11 +1,7 @@
 // Import necessary modules from Electron
 const { app, BrowserWindow, Tray, Menu, dialog } = require('electron'); 
 const path = require('path');  // Module for handling and transforming file paths
-const fs = require('fs');
-const archiver = require('archiver');
-const unzipper = require('unzipper');
-const os = require('os');
-const { getDeviceAll, getLogs, getWhitelistAll, insertTable, saveLog} = require('./routes/server_functions.js');
+const { shell } = require('electron');
 
 // Check if the app is in development mode or production
 const isDev = !app.isPackaged;  // If the app is not packaged, it is in development mode
@@ -13,12 +9,15 @@ const appRoot = isDev ? __dirname : path.join(process.resourcesPath);  // Set th
 if (isDev){require('dotenv').config({ quiet: true });}
 else {require('dotenv').config({ path: path.join(process.resourcesPath, '.env'), quiet: true });}
 
-// Set the appropriate icon path based on whether the app is in development or production
+// Set the appropriate icon and db path based on whether the app is in development or production
 let iconPath;
+let dbPath;
 if (!isDev){
   iconPath = path.join(appRoot, 'apple.ico'); // Production icon path
+  dbPath = path.join(appRoot, "database.db");
 } else {
   iconPath = path.join(appRoot, 'public/assets/apple.ico'); // Development icon path
+  dbPath = path.join(appRoot, "resources/database.db")
 }
 
 let tray;  // Tray object to handle the system tray icon
@@ -110,189 +109,20 @@ function createTray() {
   createMenu(); // Create the menu at the top
 }
 
-function getLocalIP(includeInternal = true) {
-  const interfaces = os.networkInterfaces();
-  const addresses = [];
-
-  for (const iface of Object.values(interfaces)) {
-    for (const addr of iface) {
-      if (addr.family === 'IPv4') {
-        if (includeInternal || !addr.internal) {
-          addresses.push(addr.address);
-        }
-      }
-    }
-  }
-
-  return addresses.length > 0 ? addresses[0] : '127.0.0.1';
-}
-
-function removeNulls(obj) {
-  if (Array.isArray(obj)) {
-    return obj.map(removeNulls);
-  } else if (obj && typeof obj === 'object') {
-    const cleaned = {};
-    for (const key in obj) {
-      if (obj[key] !== null && obj[key] !== undefined) {
-        cleaned[key] = removeNulls(obj[key]);
-      }
-    }
-    return cleaned;
-  }
-  return obj;
-}
-
-async function exportTable(tableName) {
-  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
-    title: tableName === 'all' ? 'Export All Tables (ZIP)' : `Export ${tableName}`,
-    defaultPath: tableName === 'all' ? 'export_all.zip' : `${tableName}.json`,
-    filters: tableName === 'all' ?
-      [{ name: 'ZIP Archive', extensions: ['zip'] }] :
-      [{ name: 'JSON', extensions: ['json'] }]
-  });
-
-  if (canceled || !filePath) return;
-
-  if (tableName === 'all') {
-    // Gather data
-    const whitelist = await getWhitelistAll();
-    const devices = await getDeviceAll();
-    const logs = await getLogs(-1);
-
-    // Create ZIP archive stream
-    const output = fs.createWriteStream(filePath);
-    const archive = archiver('zip', { zlib: { level: 9 } });
-
-    // Listen for errors
-    archive.on('error', err => { throw err; });
-
-    archive.pipe(output);
-
-    // Append each JSON as a separate file inside the zip
-    archive.append(JSON.stringify(removeNulls(whitelist), null, 2), { name: 'whitelist.json' });
-    archive.append(JSON.stringify(removeNulls(devices), null, 2), { name: 'devices.json' });
-    archive.append(JSON.stringify(removeNulls(logs), null, 2), { name: 'logs.json' });
-
-    await archive.finalize();
-    saveLog("Export All", getLocalIP(), "null", "null");
-
-  } else {
-    // Single JSON export (same as before)
-    let data;
-
-    if (tableName === 'whitelist') {
-      data = await getWhitelistAll();
-    } else if (tableName === 'devices') {
-      data = await getDeviceAll();
-    } else if (tableName === 'logs') {
-      data = await getLogs(-1);
-    }
-
-    fs.writeFileSync(filePath, JSON.stringify(removeNulls(data), null, 2));
-    saveLog(`Export ${tableName.charAt(0).toUpperCase() + tableName.slice(1)}`, getLocalIP(), "null", "null");
-  }
-}
-
-async function importTable(tableName) {
-  const { canceled, filePaths } = await dialog.showOpenDialog({
-    title: `Import ${tableName}`,
-    filters: tableName === 'all'
-      ? [{ name: 'ZIP Archive', extensions: ['zip'] }]
-      : [{ name: 'JSON', extensions: ['json'] }],
-    properties: ['openFile']
-  });
-
-  if (canceled || !filePaths.length) return;
-
-  const filePath = filePaths[0];
-
-  if (tableName === 'all') {
-    const tempDir = path.join(__dirname, 'tmp_import');
-    fs.mkdirSync(tempDir, { recursive: true });
-
-    await fs.createReadStream(filePath)
-      .pipe(unzipper.Extract({ path: tempDir }))
-      .promise();
-
-    const tables = ['whitelist', 'devices', 'logs'];
-    for (const tbl of tables) {
-      const jsonPath = path.join(tempDir, `${tbl}.json`);
-      if (fs.existsSync(jsonPath)) {
-        const raw = fs.readFileSync(jsonPath, 'utf8');
-        const data = JSON.parse(raw);
-        await insertTable(tbl, data);  // Direct call, no HTTP needed
-      }
-    }
-
-    fs.rmSync(tempDir, { recursive: true, force: true });
-    saveLog(`Import All`, getLocalIP(), "null", "null");
-
-  } else {
-    const raw = fs.readFileSync(filePath, 'utf8');
-    const data = JSON.parse(raw);
-    await insertTable(tableName, data);
-    saveLog(`Import ${tableName.charAt(0).toUpperCase() + tableName.slice(1)}`, getLocalIP(), "null", "null");
-  }
-
-  console.log(`Imported data for ${tableName} successfully.`);
-}
-
 async function createMenu() {
   const template = [
-    {
-      label: 'File',
-      submenu: [
-        {
-          label: 'Export',
-          submenu: [
-            {
-              label: 'Whitelist',
-              click: async () => await exportTable('whitelist')
-            },
-            {
-              label: 'Devices',
-              click: async () => await exportTable('devices')
-            },
-            {
-              label: 'Logs',
-              click: async () => await exportTable('logs')
-            },
-            { type: 'separator' },
-            {
-              label: 'All (ZIP)',
-              click: async () => await exportTable('all')
-            }
-          ]
-        },
-        {
-          label: 'Import',
-          submenu: [
-            {
-              label: 'Whitelist',
-              click: async () => await importTable('whitelist')
-            },
-            {
-              label: 'Devices',
-              click: async () => await importTable('devices')
-            },
-            {
-              label: 'Logs',
-              click: async () => await importTable('logs')
-            },
-                        { type: 'separator' },
-            {
-              label: 'All (ZIP)',
-              click: async () => await importTable('all')
-            }
-          ]
-        }
-      ]
-    },
     {
       label: 'View',
       submenu: [
         { role: 'reload' },
-        { role: 'toggledevtools' }
+        { role: 'toggledevtools' },
+        { role: "togglefullscreen"},
+        {
+        label: 'Open Database',
+        click: async () => {
+          await shell.openPath(dbPath);
+          }
+        }
       ]
     }
   ];

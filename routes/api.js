@@ -44,7 +44,7 @@ router.get('/get', async (req, res) => {
 
 // 🟡 ADD a device (POST)
 router.post('/add', async (req, res) => {
-    const { ip, name } = req.body; // Destructure necessary data from the request body
+    const { ip, name } = req.body;
     if (!ip || !name) {
         return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missing
     }
@@ -123,14 +123,15 @@ router.post('/whitelist', async (req, res) => {
 // GET /getIP: Returns the client's IP address
 router.get('/getIP', (req, res) => {
     const forwarded = req.headers['x-forwarded-for']; // Check for forwarded IP address
-    const ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress; // Get the client's IP
+    const ip = forwarded ? forwarded.split(',')[0] : req.socket.remoteAddress; // Get the client's IP
     res.json({ ip }); // Return the client's IP address as JSON
 });
 
-// GET /getHost: Returns the Host's IP address
-router.get('/getHost', (req, res) => {
+// GET /isHost: Returns true if given the ip of the host
+router.post('/isHost', (req, res) => {
+    const { userIP } = req.body;
     const host = process.env.HOST
-    res.json(host); // Return the client's IP address as JSON
+    res.json(userIP === host);
 });
 
 // 🟢 GET all whitelisted users
