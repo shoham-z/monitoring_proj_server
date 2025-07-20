@@ -34,10 +34,6 @@
         "to": "DB.Browser.for.SQLite-v3.13.1-win64"
       },
       {
-        "from": "resources/backups",
-        "to": "backups"
-      },
-      {
         "from": ".env",
         "to": ".env"
       }
