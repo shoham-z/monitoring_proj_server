@@ -1,5 +1,6 @@
 const path = require('path');
 const sqlite = require('sqlite3').verbose();
+const fs = require('fs');
 
 let dbPath;
 try {
@@ -16,6 +17,33 @@ let db = new sqlite.Database(dbPath, (err) => {
   if (err) console.log("Error Occurred - " + err.message);
   else console.log("DataBase Connected");
 });
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS "devices" (
+	"id"	INTEGER NOT NULL UNIQUE,
+	"ip"	TEXT NOT NULL UNIQUE,
+	"name"	TEXT NOT NULL UNIQUE,
+	PRIMARY KEY("id" AUTOINCREMENT)
+  );
+
+  CREATE TABLE IF NOT EXISTS "logs" (
+	"id"	INTEGER NOT NULL UNIQUE,
+	"type"	TEXT NOT NULL,
+	"time"	INTEGER NOT NULL,
+	"clientIP"	TEXT NOT NULL,
+	"ip"	TEXT NOT NULL,
+	"name"	TEXT NOT NULL,
+	"newName"	TEXT,
+	"newIP"	INTEGER,
+	PRIMARY KEY("id" AUTOINCREMENT)
+  );
+
+  CREATE TABLE IF NOT EXISTS "whitelist" (
+	"ip"	TEXT NOT NULL UNIQUE,
+	"name"	TEXT NOT NULL UNIQUE,
+	PRIMARY KEY("ip")
+  );
+  `);
 
 // Add new switch
 async function addDevice(ip, name) {
@@ -122,14 +150,15 @@ async function saveLog(type, clientIP, ip, name, newIP, newName){
 }
 
 async function getLogs(page = 1) {
-  const size = 100;
-  const offset = (page - 1) * size;
 
   return new Promise((resolve, reject) => {
     let query = `SELECT * FROM logs ORDER BY time DESC`;
     let params = [];
 
     if (page !== -1) {
+      const size = 100;
+      const offset = (page - 1) * size;
+
       query += ` LIMIT ? OFFSET ?`;
       params = [size, offset];
     }
@@ -137,6 +166,48 @@ async function getLogs(page = 1) {
     db.all(query, params, (err, rows) => {
       if (err) reject(err);
       else resolve(rows);
+    });
+  });
+}
+
+async function ForwardToServer2(req){
+  if (!req.headers['forwarded'] && [process.env.HOST, process.env.OTHER_HOST].includes(req.socket.remoteAddress)){
+    try {
+      // Forward the request to the other server
+      await fetch(`http://${process.env.OTHER_HOST}:${process.env.PORT}/api${req.path}`, {
+        method: req.method,
+        headers: { 'Content-Type': 'application/json', 'forwarded': 'true', 'original-ip': req.socket.remoteAddress },
+        body: JSON.stringify(req.body)
+    });
+    } catch (err) {
+      console.error("Failed to forward request to other server: ", req.path);
+    }
+  }
+  return;
+}
+
+async function overwriteDatabase(req, res) {
+  return new Promise((resolve, reject) => {
+    const writeStream = fs.createWriteStream(dbPath);
+    req.pipe(writeStream);
+
+    req.on('aborted', () => {
+      console.warn("Client aborted the request.");
+      writeStream.destroy();
+      if (!res.headersSent) res.status(400).send('Request aborted');
+      reject(new Error('Request aborted'));
+    });
+
+    writeStream.on('finish', () => {
+      console.log("Database saved to:", dbPath);
+      res.status(200).send('Database file received successfully.');
+      resolve();
+    });
+
+    writeStream.on('error', err => {
+      console.error("Error saving DB:", err);
+      res.status(500).send('Failed to save database.');
+      reject(err);
     });
   });
 }
@@ -151,5 +222,7 @@ module.exports = {
   toggleWhitelist,
   getWhitelistAll,
   saveLog,
-  getLogs
+  getLogs,
+  ForwardToServer2,
+  overwriteDatabase
 };

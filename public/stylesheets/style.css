@@ -46,22 +46,27 @@ h1 {
 table {
   width: 100%;                             /* Full width of container */
   border-collapse: collapse;               /* Remove spacing between table cells */
-  color: white;                          /* White text on dark background */
-  white-space: nowrap;
+  color: white;                            /* White text on dark background */
 }
 /* Table cell styling */
 th, td {
-  border: 4px solid #37303d;             /* Thick dark border between cells */
+  border: 4px solid #37303d;               /* Thick dark border between cells */
   padding: 8px;                            /* Inner spacing */
   text-align: center;                      /* Center content in cells */
-  white-space: nowrap;
 }
 /* Sticky-style header look (z-index prep if JS is used to freeze it) */
 th {
   top: 0;
   z-index: 1;
-  background-color: #4f4559;             /* Slightly different dark background */
-  white-space: nowrap;
+  background-color: #4f4559;               /* Slightly different dark background */
+  white-space: normal;                     /* Allow wrapping in headers */
+}
+/* Allow wrapping and break long words in td */
+td {
+  white-space: normal;                     /* Allows text to wrap */
+  word-wrap: break-word;                   /* Break long words */
+  overflow-wrap: break-word;               /* Break long words without spaces */
+  max-width: 100px;                        /* Limit width of td */
 }
 /* Alternating row colors for better readability */
 tr:nth-child(even) { background-color: #4f4559; }

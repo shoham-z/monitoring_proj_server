@@ -489,16 +489,19 @@ async function loadLogs() {
   }
 }
 
-function msToString(ms){
-  return new Date(ms).toLocaleString('en-GB', {
-  timeZone: 'Asia/Jerusalem',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit'
-});
+function msToString(ms) {
+  const dateString = new Date(ms).toLocaleString('en-GB', {
+    timeZone: 'Asia/Jerusalem',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+  
+  // Replace commas (if any) with an empty string
+  return dateString.replace(',', '');
 }
 
 // Function to filter the logs table based on the search input

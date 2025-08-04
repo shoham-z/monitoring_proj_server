@@ -2,7 +2,20 @@
 const express = require('express');
 const router = express.Router();
 // Import specific functions from 'server_functions.js' for handling device data, user authentication, etc.
-const { addDevice, editDevice, deleteDevice, getDevice, getDeviceAll, toggleWhitelist, getWhitelistAll, saveLog, getLogs } = require('./server_functions'); 
+const { addDevice, editDevice, deleteDevice, getDevice, getDeviceAll, toggleWhitelist, getWhitelistAll, saveLog, getLogs, ForwardToServer2, overwriteDatabase } = require('./server_functions'); 
+const path = require('path');
+const fs = require('fs');
+
+let dbPath;
+try {
+  const { app } = require('electron');
+  const isDev = !app || !app.isPackaged;
+  dbPath = isDev
+    ? path.join(__dirname, '../resources', 'database.db')
+    : path.join(process.resourcesPath, 'database.db');
+} catch (e) {
+  dbPath = path.join(__dirname, 'database.db');
+}
 
 // Set to track the IP addresses of connected clients
 const connectedClients = new Map();
@@ -18,7 +31,7 @@ router.use((req, res, next) => {
 router.get('/getAll', async (req, res) => {
     try {
         const devices = await getDeviceAll(); // Fetch all devices from the database
-        //await saveLog("Get Devices", req.socket.remoteAddress);
+        //await saveLog("Get Devices", req.headers['original-ip'] || req.socket.remoteAddress);
         res.status(200).json(devices); // Return the devices as JSON response
     } catch (error) {
         console.error("Error fetching devices:", error); // Log any errors
@@ -34,7 +47,7 @@ router.get('/get', async (req, res) => {
         if (!deviceData) {
             return res.status(404).json({ error: "device not found" }); // Return 404 if no device is found for the given IP
         }
-        //await saveLog("Get Device", req.socket.remoteAddress);
+        //await saveLog("Get Device", req.headers['original-ip'] || req.socket.remoteAddress);
         res.status(200).json(deviceData); // Return the device data as JSON response
     } catch (error) {
         console.error("Error fetching device:", error); // Log any errors
@@ -51,8 +64,9 @@ router.post('/add', async (req, res) => {
     
     try {
         await addDevice(ip, name); // Add the new device to the database
-        await saveLog("Add Device", req.socket.remoteAddress, ip, name);
+        await saveLog("Add Device", req.headers['original-ip'] || req.socket.remoteAddress, ip, name);
         res.status(201).json({ message: "Device added successfully" }); // Return a success message
+        ForwardToServer2(req).catch(console.error);
     } catch (err) {
         if (err?.error) {
             res.status(409).json(err); // Return 409 if there's a conflict (e.g., device already exists)
@@ -68,8 +82,9 @@ router.delete('/delete', async (req, res) => {
     try {
         const { ip, name } = req.body; // Extract the IP address of the device to be deleted from the request body
         await deleteDevice(ip); // Call the function to delete the device from the database
-        await saveLog("Delete Device", req.socket.remoteAddress, ip, name);
+        await saveLog("Delete Device", req.headers['original-ip'] || req.socket.remoteAddress, ip, name);
         res.status(200).json({ message: "Device deleted successfully" }); // Return a success message upon deletion
+        ForwardToServer2(req).catch(console.error);
     } catch (error) {
         console.error("Error deleting device:", error); // Log any errors
         res.status(500).json({ error: "Internal Server Error" }); // Return 500 status if an error occurs
@@ -84,8 +99,9 @@ router.put('/edit', async (req, res) => {
         if (result?.error) {
             res.status(409).json(result); // Return 409 if there is a conflict (e.g., duplicate data)
         } else {
-            await saveLog("Edit Device", req.socket.remoteAddress, oldIP, oldName, ip, name);
+            await saveLog("Edit Device", req.headers['original-ip'] || req.socket.remoteAddress, oldIP, oldName, ip, name);
             res.status(200).json({ message: `Edited Successfully!` }); // Return success message if the update is successful
+            ForwardToServer2(req).catch(console.error);
         }
     } catch (err) {
         if (err?.error) {
@@ -98,7 +114,7 @@ router.put('/edit', async (req, res) => {
 
 // GET /clients: Returns a list of connected clients based on IP address
 router.get('/clients', async (req, res) => {
-    //await saveLog("Get Clients", req.socket.remoteAddress);
+    //await saveLog("Get Clients", req.headers['original-ip'] || req.socket.remoteAddress);
     res.json(Array.from(connectedClients.entries())); // Return the set of connected client IPs as an array
 });
 
@@ -108,9 +124,10 @@ router.post('/whitelist', async (req, res) => {
     try {
         await toggleWhitelist(isWhitelisted, clientIp, name); // Toggle the whitelist status of the client IP
         if (!isWhitelisted){connectedClients.delete(clientIp);}
-        if (isWhitelisted){await saveLog("Unwhitelist", req.socket.remoteAddress, clientIp, name);}
-        else {await saveLog("Whitelist", req.socket.remoteAddress, clientIp, name);}
-        res.status(200).json(null); // Return a success response if the whitelist action is completed
+        if (isWhitelisted){await saveLog("Unwhitelist", req.headers['original-ip'] || req.socket.remoteAddress, clientIp, name);}
+        else {await saveLog("Whitelist", req.headers['original-ip'] || req.socket.remoteAddress, clientIp, name);}
+        res.status(200).json({ message: `${isWhitelisted ? "Unhitelisted" : "Whitelisted"} Successfully!` });; // Return a success response if the whitelist action is completed
+        ForwardToServer2(req).catch(console.error);
     } catch (err){
         if (err?.error){res.status(409).json(err.error)} 
         else {
@@ -122,23 +139,21 @@ router.post('/whitelist', async (req, res) => {
 
 // GET /getIP: Returns the client's IP address
 router.get('/getIP', (req, res) => {
-    const forwarded = req.headers['x-forwarded-for']; // Check for forwarded IP address
-    const ip = forwarded ? forwarded.split(',')[0] : req.socket.remoteAddress; // Get the client's IP
+    const ip = req.socket.remoteAddress; // Get the client's IP
     res.json({ ip }); // Return the client's IP address as JSON
 });
 
-// GET /isHost: Returns true if given the ip of the host
+// GET /isHost: Returns true if given the ip of a host
 router.post('/isHost', (req, res) => {
     const { userIP } = req.body;
-    const host = process.env.HOST
-    res.json(userIP === host);
+    res.json([process.env.HOST, process.env.OTHER_HOST].includes(userIP));
 });
 
 // 🟢 GET all whitelisted users
 router.get('/getWhitelistAll', async (req, res) => {
     try {
         const whitelist = await getWhitelistAll(); // Fetch all whitelisted users from the database
-        //await saveLog("Get Whitelist", req.socket.remoteAddress);
+        //await saveLog("Get Whitelist", req.headers['original-ip'] || req.socket.remoteAddress);
         res.status(200).json(whitelist); // Return the whitelisted users as JSON response
     } catch (error) {
         console.error("Error fetching whitelisted users:", error); // Log any errors
@@ -150,13 +165,38 @@ router.get('/getWhitelistAll', async (req, res) => {
 router.get('/getLogs', async (req, res) => {
     try {
         const devices = await getLogs(); // Fetch all logs from the database
-        //await saveLog("Get Logs", req.socket.remoteAddress);
+        //await saveLog("Get Logs", req.headers['original-ip'] || req.socket.remoteAddress);
         res.status(200).json(devices); // Return the devices as JSON response
     } catch (error) {
         console.error("Error fetching logs:", error); // Log any errors
         res.status(500).json({ error: "Internal Server Error" }); // Return a 500 status if an error occurs
     }
 });
+
+router.post('/sync', async (req, res) => {
+    if (![process.env.HOST, process.env.OTHER_HOST].includes(req.socket.remoteAddress) || req.headers['x-sync-key'] !== process.env.SYNC_SECRET)
+    {return res.status(403).send('Forbidden');}
+
+    const IncomingTime = Number(req.headers['time']) || 0;
+    const logs = await getLogs();
+    const localTime = logs[0]?.time || 0;
+
+    if (localTime > IncomingTime){
+        try {
+        const dbBuffer = fs.readFileSync(dbPath);
+
+        // Forward the database to the other server
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Length', dbBuffer.length);
+        res.setHeader('time', localTime); // Optional: send back the timestamp
+        res.status(202).send(dbBuffer);
+        
+        } catch (err) {
+        console.error("Failed to forward request to other server:", err);
+        res.status(500).send("Failed to forward request to other server");
+        }
+    } else {await overwriteDatabase(req, res);}
+})
 
 // Export the router to be used in the main app
 module.exports = { router };
