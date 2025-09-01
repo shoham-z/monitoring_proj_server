@@ -445,77 +445,6 @@ function showBlocked() {
     document.querySelectorAll("h1").forEach(h1 => {if (h1.id !== "title")h1.textContent = "";})
 }
 
-
-// Function to load all logs data from the server
-async function loadLogs() {
-  try {
-    const res = await fetch(`${url}/api/getLogs`);
-
-    // If the user is not authorized or forbidden, redirect to blocked page
-    if (res.status === 403){return showBlocked();}
-
-    // If the response is not OK, throw an error
-    if (!res.ok) throw new Error("Server error");
-
-    // Parse the response as JSON to get the logs data
-    const logs = await res.json();
-
-    const tbody = document.querySelector("tbody");
-    // Populate the table with the devices data
-    tbody.innerHTML = logs.map(row => `
-      <tr>
-        <td>${row.type === "null" ? "" : row.type}</td>
-        <td>${msToString(row.time)}</td>
-        <td>${row.clientIP === "null" ? "" : row.clientIP}</td>
-        <td>${row.ip === "null" ? "" : row.ip}</td>
-        <td>${row.name === "null" ? "" : row.name}</td>
-        <td>${row.newIP === "null" ? "" : row.newIP || ""}</td>
-        <td>${row.newName === "null" ? "" : row.newName || ""}</td>
-      </tr>`).join("");
-
-      filterLogs();
-
-    document.querySelectorAll("button:not(.gray-btn)").forEach(btn => btn.disabled = false);
-    const title = document.getElementById("title");
-    title.textContent = "Logs";
-    title.className = "";
-
-  } catch(err) {
-    // If an error occurs, display an offline message and disable buttons
-    const title = document.getElementById("title");
-    title.className = "closed";
-    title.textContent = "The Server Is Offline";
-    document.querySelectorAll("button:not(.gray-btn)").forEach(btn => btn.disabled = true);
-  }
-}
-
-function msToString(ms) {
-  const dateString = new Date(ms).toLocaleString('en-GB', {
-    timeZone: 'Asia/Jerusalem',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-  
-  // Replace commas (if any) with an empty string
-  return dateString.replace(',', '');
-}
-
-// Function to filter the logs table based on the search input
-function filterLogs() {
-  const input = document.getElementById("search-bar").value.toLowerCase();
-  document.querySelectorAll("#table-body tr").forEach(row => {
-    const matchFound = Array.from(row.cells).some(cell =>
-      cell.textContent.toLowerCase().includes(input)
-    );
-    row.style.display = matchFound ? "" : "none";
-  });
-}
-
-
 // Event listener to handle different pages once the DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
   switch (window.location.pathname){
@@ -541,8 +470,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     case "/logs": {
       //Load logs
-      loadLogs();
-      setInterval(() => {loadLogs();}, 5000);
+      loadLogs(currentPage);
+
+      if (window.location.pathname.includes("logs")){
+
+      }
+
       break;
     }
   }

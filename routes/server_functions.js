@@ -149,18 +149,43 @@ async function saveLog(type, clientIP, ip, name, newIP, newName){
   });
 }
 
-async function getLogs(page = 1) {
-
+async function getLogs(page = 1, search = "") {
   return new Promise((resolve, reject) => {
-    let query = `SELECT * FROM logs ORDER BY time DESC`;
-    let params = [];
+    let query = `
+      SELECT *,
+        strftime('%d/%m/%Y %H:%M:%S', time/1000, 'unixepoch', 'localtime') AS formattedTime
+      FROM logs
+    `;
+    const params = [];
+
+    if (search) {
+      query += ` WHERE 
+        type LIKE ? OR
+        formattedTime LIKE ? OR
+        clientIP LIKE ? OR
+        ip LIKE ? OR
+        name LIKE ? OR
+        newIP LIKE ? OR
+        newName LIKE ?`;
+      const searchPattern = `%${search}%`;
+      params.push(
+        searchPattern,
+        searchPattern,
+        searchPattern,
+        searchPattern,
+        searchPattern,
+        searchPattern,
+        searchPattern
+      );
+    }
+
+    query += ` ORDER BY time DESC`;
 
     if (page !== -1) {
       const size = 100;
       const offset = (page - 1) * size;
-
       query += ` LIMIT ? OFFSET ?`;
-      params = [size, offset];
+      params.push(size, offset);
     }
 
     db.all(query, params, (err, rows) => {

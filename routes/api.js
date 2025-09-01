@@ -164,12 +164,13 @@ router.get('/getWhitelistAll', async (req, res) => {
 // GET all logs
 router.get('/getLogs', async (req, res) => {
     try {
-        const devices = await getLogs(); // Fetch all logs from the database
-        //await saveLog("Get Logs", req.headers['original-ip'] || req.socket.remoteAddress);
-        res.status(200).json(devices); // Return the devices as JSON response
+        const page = parseInt(req.query.page) || 1;
+        const search = req.query.search || "";
+        const logs = await getLogs(page, search);
+        res.status(200).json(logs);
     } catch (error) {
-        console.error("Error fetching logs:", error); // Log any errors
-        res.status(500).json({ error: "Internal Server Error" }); // Return a 500 status if an error occurs
+        console.error("Error fetching logs:", error);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 

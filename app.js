@@ -1,6 +1,7 @@
 // Import necessary modules
 const express = require('express'); // Express framework for server handling
 const path = require('path'); // Path module to manage file paths
+const cors = require('cors'); // CORS (Cross-Origin Resource Sharing) middleware for enabling cross-origin requests
 const logger = require('morgan'); // HTTP request logger middleware
 const { isWhitelisted, getLogs } = require('./routes/server_functions'); // Import functions
 const fs = require('fs');
@@ -33,6 +34,12 @@ app.use((req, res, next) => {
 
 // Set up EJS as the view engine
 app.set('view engine', 'ejs');
+
+// Set up CORS to allow cross-origin requests with credentials
+app.use(cors({
+    origin: true, // Allow requests from all origins (can specify a domain in production)
+    credentials: true  // Allow cookies and credentials in cross-origin requests
+}));
 
 // HTTP request logging middleware (logs all HTTP requests)
 app.use(logger('dev'));

@@ -4,7 +4,7 @@
   <title>Apple Server</title>
   <link rel="stylesheet" href="./stylesheets/style.css">
   <link rel="icon" type="image/png" href="./assets/apple.png">
-  <script src="./javascript/functions.js"></script>
+  <script src="./javascript/logs.js"></script>
 </head>
 
 <body class="logs-page">
@@ -14,7 +14,7 @@
   <h1 id="title">Logs</h1>
 
   
-  <input type="text" id="search-bar" placeholder="Search Here" onkeyup="filterLogs()" autocomplete="off">
+  <input type="text" id="search-bar" placeholder="Search Here" oninput="filterLogs()" autocomplete="off">
 
   <!-- Table container with scroll functionality -->
   <div id="table-container" style="width: 900px;">
