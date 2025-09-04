@@ -43,7 +43,7 @@ function createWindow() {
   });
 
   // Load the app's URL or local server page
-  mainWindow.loadURL(`http://${process.env.HOST}:${process.env.PORT}`);
+  mainWindow.loadURL(`https://${process.env.HOST}:${process.env.PORT}`);
 
   // Event handler when the window is about to close
   mainWindow.on('close', (event) => {
@@ -134,6 +134,7 @@ async function createMenu() {
 
 // When the app is ready, set up the main window, tray, and start the server
 app.whenReady().then(async () => {
+  app.commandLine.appendSwitch('ignore-certificate-errors');
   require('./app.js');  // Start the server inside Electron (server script)
 
   createTray();  // Create the system tray icon

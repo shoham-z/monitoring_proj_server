@@ -6,6 +6,7 @@ const logger = require('morgan'); // HTTP request logger middleware
 const { isWhitelisted, getLogs } = require('./routes/server_functions'); // Import functions
 const fs = require('fs');
 const { app: electronApp } = require('electron');
+const https = require("https"); // add this at the top with other imports
 
 const dotenv = require('dotenv');
 const basePath = electronApp.isPackaged
@@ -94,11 +95,23 @@ app.get('/logs', async (req, res) => {
 // Serve static files (e.g., images, stylesheets) from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public'), { index: 'devices.html' }));
 
-// Start the server and listen on a specific port, accessible from all IP addresses (0.0.0.0)
-app.listen(process.env.PORT, '0.0.0.0', async () => {
-  console.log("✅ Server is listening");
-  await syncDatabase(); // <-- call here!
+//Load SSL certificate + key
+console.log (path.join(basePath, 'resources', "server.key"))
+const options = {
+  key: fs.readFileSync(path.join(basePath, 'resources', "server.key")),
+  cert: fs.readFileSync(path.join(basePath, 'resources', "server.cert")),
+};
+
+https.createServer(options, app).listen(process.env.PORT, "0.0.0.0", async () => {
+  console.log("✅ HTTPS server is listening");
+  await syncDatabase();
 });
+
+// Start the server and listen on a specific port, accessible from all IP addresses (0.0.0.0)
+// app.listen(process.env.PORT, '0.0.0.0', async () => {
+//   console.log("✅ Server is listening");
+//   await syncDatabase(); // <-- call here!
+// });
 
 // Export the app for potential testing or external use
 module.exports = app;

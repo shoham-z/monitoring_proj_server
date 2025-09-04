@@ -36,6 +36,14 @@
       {
         "from": ".env",
         "to": ".env"
+      },
+      {
+        "from": "resources/server.cert",
+        "to": "server.cert"
+      },
+      {
+        "from": "resources/server.key",
+        "to": "server.key"
       }
     ],
     "win": {
@@ -50,6 +58,7 @@
     "dotenv": "^17.1.0",
     "ejs": "^3.1.9",
     "express": "^4.18.2",
+    "https": "^1.0.0",
     "morgan": "~1.9.1",
     "sqlite3": "^5.1.7",
     "unzipper": "^0.12.3"

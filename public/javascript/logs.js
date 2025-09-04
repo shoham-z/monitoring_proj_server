@@ -5,7 +5,7 @@ let currentPageUp = 1;   // page number used when loading up
 let loading = false;
 let allLoadedDown = false;
 // start false — we haven't proven there's nothing above yet
-let allLoadedUp = false;
+let allLoadedUp = true;
 const maxRows = 200;
 
 // -- loadLogs (only relevant parts shown, replace your function with this) --
@@ -45,21 +45,21 @@ async function loadLogs(page, direction, search) {
     if (direction === "beforeend") {
       currentPageDown++;
       // when going down, allow going back up
-      if (currentPageDown - currentPageUp > maxRows / 100) { currentPageUp++; allLoadedUp = false; }
+      if (currentPageDown - currentPageUp > maxRows / 100) {
+        currentPageUp++;
+        allLoadedUp = false;
+      }
     } else { // afterbegin
       // NOTE: keep your chosen increment/decrement semantics — this just updates flags
       currentPageUp--;
       if (currentPageDown - currentPageUp > maxRows / 100) { currentPageDown--; }
+      if (page <= 1){allLoadedUp = true;}
 
       const container = document.getElementById("table-container");
       container.scrollTop += 5600;
     }
 
-    if (direction === "afterbegin") {
-      allLoadedUp = (page <= 1);
-    }
 
-    if (currentPageUp > 1) { allLoadedUp = false; }
 
     trimOverflowRows(direction);
 
@@ -69,8 +69,6 @@ async function loadLogs(page, direction, search) {
     loading = false;
   }
 }
-
-
 
 function trimOverflowRows(direction) {
   const tbody = document.querySelector("tbody");
