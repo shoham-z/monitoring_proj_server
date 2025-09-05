@@ -102,16 +102,11 @@ const options = {
   cert: fs.readFileSync(path.join(basePath, 'resources', "server.cert")),
 };
 
+// Start the server using HTTPS and listen on a specific port, accessible from all IP addresses (0.0.0.0)
 https.createServer(options, app).listen(process.env.PORT, "0.0.0.0", async () => {
   console.log("✅ HTTPS server is listening");
   await syncDatabase();
 });
-
-// Start the server and listen on a specific port, accessible from all IP addresses (0.0.0.0)
-// app.listen(process.env.PORT, '0.0.0.0', async () => {
-//   console.log("✅ Server is listening");
-//   await syncDatabase(); // <-- call here!
-// });
 
 // Export the app for potential testing or external use
 module.exports = app;
@@ -123,7 +118,7 @@ async function syncDatabase(){
     const logs = await getLogs();
     const time = logs[0]?.time || 0;
 
-    const response = await fetch(`http://${process.env.OTHER_HOST}:${process.env.PORT}/api/sync`, {
+    const response = await fetch(`https://${process.env.OTHER_HOST}:${process.env.PORT}/api/sync`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/octet-stream',
