@@ -96,10 +96,10 @@ app.get('/logs', async (req, res) => {
 app.use(express.static(path.join(__dirname, 'public'), { index: 'devices.html' }));
 
 //Load SSL certificate + key
-console.log (path.join(basePath, 'resources', "server.key"))
+console.log (path.join(basePath, "resources", "ceretificates", "server.key"))
 const options = {
-  key: fs.readFileSync(path.join(basePath, 'resources', "server.key")),
-  cert: fs.readFileSync(path.join(basePath, 'resources', "server.cert")),
+  key: fs.readFileSync(path.join(basePath, "resources", "ceretificates", "server.key")),
+  cert: fs.readFileSync(path.join(basePath, "resources", "ceretificates", "server.cert")),
 };
 
 // Start the server and listen on a specific port, accessible from all IP addresses (0.0.0.0)

@@ -1,7 +1,12 @@
 {
-  "name": "apple_server",
+  "name": "apple_monitoring_server",
   "productName": "Apple Monitoring Server",
-  "author": "Yonatan Heled & Shoham Zeharya",
+  "description": "A Monitoring Server App Based on Electron",
+  "author": {
+    "name": "Yonatan Heled & Shoham Zeharya",
+    "email": "yonahel0001@gmail.com",
+    "url": "https://github.com/YTG667"
+  },
   "version": "1.0.0",
   "private": true,
   "main": "main.js",
@@ -38,12 +43,12 @@
         "to": ".env"
       },
       {
-        "from": "resources/server.cert",
-        "to": "server.cert"
+        "from": "resources/ceretificates/server.cert",
+        "to": "ceretificates/server.cert"
       },
       {
-        "from": "resources/server.key",
-        "to": "server.key"
+        "from": "resources/ceretificates/server.key",
+        "to": "ceretificates/server.key"
       }
     ],
     "win": {
