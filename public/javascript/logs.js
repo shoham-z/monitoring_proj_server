@@ -25,19 +25,24 @@ async function loadLogs(page, direction, search) {
       return;
     } else {allLoadedDown = false;}
 
+    var isEven = false;
+
     // insert rows (your current insert logic)
     const tbody = document.querySelector("tbody");
     if (direction === "afterbegin") logs.reverse();
     logs.forEach(row => {
       const tr = `
-        <td>${row.type}</td>
-        <td>${msToString(row.time)}</td>
-        <td>${row.clientIP}</td>
-        <td>${row.ip}</td>
-        <td>${row.name}</td>
-        <td>${row.newIP === "null" ? "" : row.newIP || ""}</td>
-        <td>${row.newName === "null" ? "" : row.newName || ""}</td>
+        <tr class="${isEven ? "even" : "odd"}">
+          <td>${row.type}</td>
+          <td>${msToString(row.time)}</td>
+          <td>${row.clientIP}</td>
+          <td>${row.ip}</td>
+          <td>${row.name}</td>
+          <td>${row.newIP === "null" ? "" : row.newIP || ""}</td>
+          <td>${row.newName === "null" ? "" : row.newName || ""}</td>
+        </tr>
       `;
+      isEven = !isEven;
       tbody.insertAdjacentHTML(direction, tr);
     });
 

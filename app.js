@@ -102,6 +102,12 @@ const options = {
   cert: fs.readFileSync(path.join(basePath, 'resources', "server.cert")),
 };
 
+// Start the server and listen on a specific port, accessible from all IP addresses (0.0.0.0)
+/*app.listen(process.env.PORT, '0.0.0.0', async () => {
+  console.log("✅ Server is listening");
+  await syncDatabase(); // <-- call here!
+});*/
+
 // Start the server using HTTPS and listen on a specific port, accessible from all IP addresses (0.0.0.0)
 https.createServer(options, app).listen(process.env.PORT, "0.0.0.0", async () => {
   console.log("✅ HTTPS server is listening");

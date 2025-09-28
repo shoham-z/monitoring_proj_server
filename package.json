@@ -47,7 +47,7 @@
       }
     ],
     "win": {
-      "target": "portable",
+      "target": "nsis",
       "icon": "public/assets/apple.ico"
     }
   },
