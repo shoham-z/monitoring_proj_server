@@ -95,24 +95,31 @@ app.get('/logs', async (req, res) => {
 // Serve static files (e.g., images, stylesheets) from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public'), { index: 'devices.html' }));
 
-//Load SSL certificate + key
-console.log (path.join(basePath, "resources", "ceretificates", "server.key"))
-const options = {
-  key: fs.readFileSync(path.join(basePath, "resources", "ceretificates", "server.key")),
-  cert: fs.readFileSync(path.join(basePath, "resources", "ceretificates", "server.cert")),
-};
+switch (process.env.PROTOCOL){
+  case "HTTPS": {
+    //Load SSL certificate + key
+    console.log (path.join(basePath, "resources", "ceretificates", "server.key"))
+    const options = {
+      key: fs.readFileSync(path.join(basePath, "resources", "ceretificates", "server.key")),
+      cert: fs.readFileSync(path.join(basePath, "resources", "ceretificates", "server.cert")),
+    };
 
-// Start the server and listen on a specific port, accessible from all IP addresses (0.0.0.0)
-/*app.listen(process.env.PORT, '0.0.0.0', async () => {
-  console.log("✅ Server is listening");
-  await syncDatabase(); // <-- call here!
-});*/
-
-// Start the server using HTTPS and listen on a specific port, accessible from all IP addresses (0.0.0.0)
-https.createServer(options, app).listen(process.env.PORT, "0.0.0.0", async () => {
-  console.log("✅ HTTPS server is listening");
-  await syncDatabase();
-});
+    // Start the server using HTTPS and listen on a specific port, accessible from all IP addresses (0.0.0.0)
+    https.createServer(options, app).listen(process.env.PORT, "0.0.0.0", async () => {
+      console.log("✅ HTTPS server is listening");
+      await syncDatabase();
+    });
+    break;
+  }
+  case "HTTP": {
+    // Start the server and listen on a specific port, accessible from all IP addresses (0.0.0.0)
+    app.listen(process.env.PORT, '0.0.0.0', async () => {
+      console.log("✅ HTTP server is listening");
+      await syncDatabase();
+    });
+    break;
+  }
+}
 
 // Export the app for potential testing or external use
 module.exports = app;
@@ -124,7 +131,7 @@ async function syncDatabase(){
     const logs = await getLogs();
     const time = logs[0]?.time || 0;
 
-    const response = await fetch(`https://${process.env.OTHER_HOST}:${process.env.PORT}/api/sync`, {
+    const response = await fetch(`${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}/api/sync`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/octet-stream',

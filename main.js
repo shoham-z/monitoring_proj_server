@@ -45,7 +45,7 @@ function createWindow() {
   });
 
   // Load the app's URL or local server page
-  mainWindow.loadURL(`https://${process.env.HOST}:${process.env.PORT}`);
+  mainWindow.loadURL(`${process.env.PROTOCOL.toLowerCase()}://${process.env.HOST}:${process.env.PORT}`);
 
   // Event handler when the window is about to close
   mainWindow.on('close', (event) => {
