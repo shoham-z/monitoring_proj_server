@@ -112,7 +112,7 @@ switch (process.env.PROTOCOL){
     break;
   }
   case "HTTP": {
-    // Start the server and listen on a specific port, accessible from all IP addresses (0.0.0.0)
+    // Start the server using HTTP and listen on a specific port, accessible from all IP addresses (0.0.0.0)
     app.listen(process.env.PORT, '0.0.0.0', async () => {
       console.log("✅ HTTP server is listening");
       await syncDatabase();
