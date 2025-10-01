@@ -1,0 +1,93 @@
+/* === BUTTONS === */
+/* Base style for all buttons */
+button {
+  padding: 10px 16px;
+  margin: 0 5px;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;                         /* Pointer cursor on hover */
+  transition: transform 0.2s ease;         /* Smooth scaling on hover */
+}
+/* Slight scale effect when hovered */
+button:hover {
+  transform: scale(1.03);
+}
+/* Disabled button look */
+button:disabled {
+  cursor: not-allowed;                     /* Show not-allowed cursor */
+}
+/* Style for "submit" type buttons */
+button[type="submit"] {
+  background: gold;                      /* Bright standout color */
+  border-radius: 5px;
+}
+button[type="submit"]:hover {
+  background: darkgoldenrod;             /* Darker gold on hover */
+}
+
+/* Themed button colors */
+.blue-btn    { background-color: #569fcc; }  /* Blue for actions like "Save" */
+.green-btn   { background-color: #4CAF50; }  /* Green for confirm actions */
+.red-btn     { background-color: #f44336; }  /* Red for delete/danger */
+.gray-btn    { background-color: #a9a9a9; }  /* Gray for neutral/disabled look */
+.purple-btn  {
+  background-color: #4E2A84;             /* Purple for special actions */
+  position: fixed;                         /* Float in top-right corner */
+  top: 10px;
+  right: 10px;
+  color: lightgray;
+}
+
+.purple-btn:nth-of-type(1) {
+  top: 10px;
+}
+
+.purple-btn:nth-of-type(2) {
+  top: 60px;
+}
+
+/* Hover effects for themed buttons */
+.blue-btn:hover    { background-color: #5092bb; }
+.green-btn:hover   { background-color: #45a049; }
+.red-btn:hover     { background-color: #e53935; }
+.gray-btn:hover    { background-color: #808080; }
+.purple-btn:hover  { background-color: #3f236a; }
+
+/* === FORMS, INPUTS === */
+/* Shared input styling */
+input[type="text"] {
+  width: 100%;                             /* Fill container */
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 16px;
+  background-color: #38343c;             /* Dark background */
+  color: white;
+  border: 1px solid #555;                /* Subtle border */
+  border-radius: 6px;
+  box-sizing: border-box;                  /* Padding included in width */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  caret-color: auto;
+}
+/* Focus effect for inputs */
+input[type="text"]:focus {
+  outline: none;
+  border: 1px solid #569fcc;             /* Highlight on focus */
+}
+/* Placeholder text styling */
+input::placeholder {
+  color: #aaa;
+}
+
+/* === SEARCH BAR === */
+/* Style search bar input at top of table */
+#search-bar {
+  margin: 20px auto;
+  width: 650px;
+  padding: 8px;
+  font-size: 16px;
+  border-radius: 5px;
+  text-align: center;
+  caret-color: auto;
+}

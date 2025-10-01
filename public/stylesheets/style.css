@@ -1,6 +1,10 @@
+@import url("../stylesheets/input.css");
+@import url("../stylesheets/tables.css");
+@import url("../stylesheets/menu.css");
+
 /* === RESET & BASE === */
 /* Remove default margin and ensure full height for layout */
-html, body {
+html {
   height: 100%;                             /* Full viewport height for flex centering */
   margin: 0;                                /* Remove default browser margin */
   font-family: 'Inter', sans-serif;        /* Set modern sans-serif font */
@@ -9,10 +13,12 @@ html, body {
 /* Center page contents and apply background image */
 body {
   display: flex;                            /* Enable flex layout */
-  justify-content: center;                 /* Horizontally center content */
   align-items: center;                     /* Vertically center content */
   background: url('../assets/Background.png') center/cover no-repeat; /* Background image fills and centers */
   caret-color: transparent;
+  flex-direction: column;
+  justify-content: flex-start;             /* Align from top */
+  padding-top: 40px;
 }
 
 /* === TYPOGRAPHY === */
@@ -30,222 +36,4 @@ h1 {
   color: white;
   text-shadow: -2px -2px 0 green, 2px -2px 0 green, -2px 2px 0 green, 2px 2px 0 green; /* lightgreen outline for emphasis */
   visibility: hidden;
-}
-
-/* === TABLE === */
-/* Wrapper to make table scrollable if too tall */
-#table-container {
-  max-height: 550px;                       /* Limit height before vertical scrolling */
-  overflow-y: auto;                        /* Allow vertical scroll */
-  overflow-x: hidden;                      /* Prevent horizontal scroll */
-                              
-  margin: 0 auto;                          /* Center horizontally */
-  position: relative;                      /* Needed for positioning child elements if needed */
-}
-/* Basic table structure and appearance */
-table {
-  width: 100%;                             /* Full width of container */
-  border-collapse: collapse;               /* Remove spacing between table cells */
-  color: white;                            /* White text on dark background */
-}
-/* Table cell styling */
-th, td {
-  border: 4px solid #37303d;               /* Thick dark border between cells */
-  padding: 8px;                            /* Inner spacing */
-  text-align: center;                      /* Center content in cells */
-}
-/* Sticky-style header look (z-index prep if JS is used to freeze it) */
-th {
-  top: 0;
-  z-index: 1;
-  background-color: #4f4559;               /* Slightly different dark background */
-  white-space: normal;                     /* Allow wrapping in headers */
-}
-/* Allow wrapping and break long words in td */
-td {
-  white-space: normal;                     /* Allows text to wrap */
-  word-wrap: break-word;                   /* Break long words */
-  overflow-wrap: break-word;               /* Break long words without spaces */
-  max-width: 100px;                        /* Limit width of td */
-}
-/* Alternating row colors for better readability */
-tr.odd  { background-color: #6b5e78; }
-tr.even { background-color: #4f4559; }
-/* Make the name or description column wrap instead of overflow */
-td:nth-child(2) {
-  white-space: normal;                     /* Allow normal line wrapping */
-  word-break: break-word;                  /* Break long words if needed */
-}
-
-/* === BUTTONS === */
-/* Base style for all buttons */
-button {
-  padding: 10px 16px;
-  margin: 0 5px;
-  border: none;
-  border-radius: 8px;
-  font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;                         /* Pointer cursor on hover */
-  transition: transform 0.2s ease;         /* Smooth scaling on hover */
-}
-/* Slight scale effect when hovered */
-button:hover {
-  transform: scale(1.03);
-}
-/* Disabled button look */
-button:disabled {
-  cursor: not-allowed;                     /* Show not-allowed cursor */
-}
-/* Style for "submit" type buttons */
-button[type="submit"] {
-  background: gold;                      /* Bright standout color */
-  border-radius: 5px;
-}
-button[type="submit"]:hover {
-  background: darkgoldenrod;             /* Darker gold on hover */
-}
-
-/* Themed button colors */
-.blue-btn    { background-color: #569fcc; }  /* Blue for actions like "Save" */
-.green-btn   { background-color: #4CAF50; }  /* Green for confirm actions */
-.red-btn     { background-color: #f44336; }  /* Red for delete/danger */
-.gray-btn    { background-color: #a9a9a9; }  /* Gray for neutral/disabled look */
-.purple-btn  {
-  background-color: #4E2A84;             /* Purple for special actions */
-  position: fixed;                         /* Float in top-right corner */
-  top: 10px;
-  right: 10px;
-  color: lightgray;
-}
-
-.purple-btn:nth-of-type(1) {
-  top: 10px;
-}
-
-.purple-btn:nth-of-type(2) {
-  top: 60px;
-}
-
-/* Hover effects for themed buttons */
-.blue-btn:hover    { background-color: #5092bb; }
-.green-btn:hover   { background-color: #45a049; }
-.red-btn:hover     { background-color: #e53935; }
-.gray-btn:hover    { background-color: #808080; }
-.purple-btn:hover  { background-color: #3f236a; }
-
-/* === FORMS, INPUTS === */
-/* Shared input styling */
-input[type="text"] {
-  width: 100%;                             /* Fill container */
-  padding: 10px;
-  margin: 10px 0;
-  font-size: 16px;
-  background-color: #38343c;             /* Dark background */
-  color: white;
-  border: 1px solid #555;                /* Subtle border */
-  border-radius: 6px;
-  box-sizing: border-box;                  /* Padding included in width */
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  caret-color: auto;
-}
-/* Focus effect for inputs */
-input[type="text"]:focus {
-  outline: none;
-  border: 1px solid #569fcc;             /* Highlight on focus */
-}
-/* Placeholder text styling */
-input::placeholder {
-  color: #aaa;
-}
-
-/* === MENU & POPUPS === */
-/* Hidden by default and centered when shown */
-#Menu, .popup {
-  display: none;                           /* Hidden until triggered by JS */
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  padding: 20px;
-  transform: translate(-50%, -50%);        /* Perfect center */
-  border-radius: 10px;
-}
-/* Menu used for editing/adding entries */
-#Menu {
-  width: 300px;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);/* Subtle drop shadow */
-  color: #222;                              /* Dark text */
-}
-/* General popup style (e.g., delete confirm) */
-.popup {
-  background-color: #38343c;
-  width: max-content;                      /* Fit content width */
-}
-/* Inner content styling of the popup */
-.popup-content {
-  background-color: #202424;
-  color: white;
-  padding: 20px;
-  border-radius: 10px;
-  text-align: center;
-  justify-content: space-between;          /* Prepared for flex layout */
-}
-
-/* === SEARCH BAR === */
-/* Style search bar input at top of table */
-#search-bar {
-  margin: 20px auto;
-  width: 650px;
-  padding: 8px;
-  font-size: 16px;
-  border-radius: 5px;
-  text-align: center;
-  caret-color: auto;
-}
-
-/* === ERROR, SCROLLBAR, LAYOUT === */
-/* Hidden error messages, shown on validation failure */
-.error-message {
-  color: red;
-  display: none;
-  white-space: pre-line;                   /* Preserve line breaks */
-}
-/* Layout styling for different content pages */
-.devices-page, .clients-page, .logs-page, .blocked-page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;             /* Align from top */
-  padding-top: 40px;
-}
-/* Custom scrollbar for modern look */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-track {
-  background: #202024;
-  border-radius: 6px;
-}
-::-webkit-scrollbar-thumb {
-  background-color: #569fcc;
-  border-radius: 6px;
-  border: 2px solid #202024;
-}
-::-webkit-scrollbar-thumb:hover {
-  background-color: #417da3;
-}
-
-/* === DRAG HANDLE === */
-/* Used for draggable top area */
-#drag-handle {
-  height: 10px;
-  width: 50%;                              /* Only middle part is draggable */
-  margin: 0 auto;
-  background-color: #38343c;
-  cursor: move;                            /* Indicate draggable area */
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
-  user-select: none;                       /* Prevent selecting text */
 }

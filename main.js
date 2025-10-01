@@ -20,6 +20,8 @@ if (!isDev){
   dbPath = path.join(appRoot, "resources/database.db")
 }
 
+app.commandLine.appendSwitch("ignore-certificate-errors");
+
 let tray;  // Tray object to handle the system tray icon
 let mainWindow;  // Main application window
 

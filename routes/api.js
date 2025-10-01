@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 // Import specific functions from 'server_functions.js' for handling device data, user authentication, etc.
-const { addDevice, editDevice, deleteDevice, getDevice, getDeviceAll, toggleWhitelist, getWhitelistAll, saveLog, getLogs, ForwardToServer2, overwriteDatabase } = require('./server_functions'); 
+const { addDevice, editDevice, deleteDevice, getDeviceIP, getDeviceID, getDeviceAll, toggleWhitelist, getWhitelistAll, saveLog, getLogs, ForwardToServer2, overwriteDatabase } = require('./server_functions'); 
 const path = require('path');
 const fs = require('fs');
 
@@ -43,7 +43,7 @@ router.get('/getAll', async (req, res) => {
 router.get('/get', async (req, res) => {
     try {
         const { ip } = req.body;
-        const deviceData = await getDevice(ip); // Fetch a single device based on the provided IP address
+        const deviceData = await getDeviceIP(ip); // Fetch a single device based on the provided IP address
         if (!deviceData) {
             return res.status(404).json({ error: "device not found" }); // Return 404 if no device is found for the given IP
         }
@@ -80,9 +80,10 @@ router.post('/add', async (req, res) => {
 // 🔴 DELETE a device
 router.delete('/delete', async (req, res) => {
     try {
-        const { ip, name } = req.body; // Extract the IP address of the device to be deleted from the request body
+        const { ip } = req.body; // Extract the IP address of the device to be deleted from the request body
+        const row = await getDeviceIP(ip);
         await deleteDevice(ip); // Call the function to delete the device from the database
-        await saveLog("Delete Device", req.headers['original-ip'] || req.socket.remoteAddress, ip, name);
+        await saveLog("Delete Device", req.headers['original-ip'] || req.socket.remoteAddress, ip, row.name);
         res.status(200).json({ message: "Device deleted successfully" }); // Return a success message upon deletion
         ForwardToServer2(req).catch(console.error);
     } catch (error) {
@@ -93,13 +94,14 @@ router.delete('/delete', async (req, res) => {
 
 // 🟠 EDIT a device (PUT)
 router.put('/edit', async (req, res) => {
-    const { id, ip, name, oldIP, oldName } = req.body.data || req.body; // Extract data to edit the device
+    const { id, ip, name } = req.body.data || req.body; // Extract data to edit the device
     try {
+        const row = await getDeviceID(id);
         const result = await editDevice(id, ip, name); // Call the function to update the device in the database
         if (result?.error) {
             res.status(409).json(result); // Return 409 if there is a conflict (e.g., duplicate data)
         } else {
-            await saveLog("Edit Device", req.headers['original-ip'] || req.socket.remoteAddress, oldIP, oldName, ip, name);
+            await saveLog("Edit Device", req.headers['original-ip'] || req.socket.remoteAddress, row.ip, row.name, ip, name);
             res.status(200).json({ message: `Edited Successfully!` }); // Return success message if the update is successful
             ForwardToServer2(req).catch(console.error);
         }
@@ -107,6 +109,7 @@ router.put('/edit', async (req, res) => {
         if (err?.error) {
             res.status(409).json(err); // Return 409 if there's a conflict
         } else {
+            console.error(err)
             res.status(400).json(err); // Return 400 if the data provided is invalid or incomplete
         }
     }

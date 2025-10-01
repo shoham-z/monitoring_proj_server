@@ -1,0 +1,70 @@
+/* === MENU & POPUPS === */
+/* Hidden by default and centered when shown */
+#Menu, .popup {
+  display: none;                           /* Hidden until triggered by JS */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  padding: 20px;
+  transform: translate(-50%, -50%);        /* Perfect center */
+  border-radius: 10px;
+}
+/* Menu used for editing/adding entries */
+#Menu {
+  width: 300px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);/* Subtle drop shadow */
+  color: #222;                              /* Dark text */
+}
+/* General popup style (e.g., delete confirm) */
+.popup {
+  background-color: #38343c;
+  width: max-content;                      /* Fit content width */
+}
+/* Inner content styling of the popup */
+.popup-content {
+  background-color: #202424;
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  justify-content: space-between;          /* Prepared for flex layout */
+}
+
+/* === ERROR, SCROLLBAR, LAYOUT === */
+/* Hidden error messages, shown on validation failure */
+.error-message {
+  color: red;
+  display: none;
+  white-space: pre-line;                   /* Preserve line breaks */
+}
+/* Custom scrollbar for modern look */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #202024;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #569fcc;
+  border-radius: 6px;
+  border: 2px solid #202024;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #417da3;
+}
+
+/* === DRAG HANDLE === */
+/* Used for draggable top area */
+#drag-handle {
+  height: 10px;
+  width: 50%;                              /* Only middle part is draggable */
+  margin: 0 auto;
+  background-color: #38343c;
+  cursor: move;                            /* Indicate draggable area */
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  user-select: none;                       /* Prevent selecting text */
+}

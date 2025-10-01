@@ -1,0 +1,44 @@
+/* === TABLE === */
+/* Wrapper to make table scrollable if too tall */
+#table-container {
+  max-height: 550px;                       /* Limit height before vertical scrolling */
+  overflow-y: auto;                        /* Allow vertical scroll */
+  overflow-x: hidden;                      /* Prevent horizontal scroll */
+                              
+  margin: 0 auto;                          /* Center horizontally */
+  position: relative;                      /* Needed for positioning child elements if needed */
+}
+/* Basic table structure and appearance */
+table {
+  width: 100%;                             /* Full width of container */
+  border-collapse: collapse;               /* Remove spacing between table cells */
+  color: white;                            /* White text on dark background */
+}
+/* Table cell styling */
+th, td {
+  border: 4px solid #37303d;               /* Thick dark border between cells */
+  padding: 8px;                            /* Inner spacing */
+  text-align: center;                      /* Center content in cells */
+}
+/* Sticky-style header look (z-index prep if JS is used to freeze it) */
+th {
+  top: 0;
+  z-index: 1;
+  background-color: #4f4559;               /* Slightly different dark background */
+  white-space: normal;                     /* Allow wrapping in headers */
+}
+/* Allow wrapping and break long words in td */
+td {
+  white-space: normal;                     /* Allows text to wrap */
+  word-wrap: break-word;                   /* Break long words */
+  overflow-wrap: break-word;               /* Break long words without spaces */
+  max-width: 100px;                        /* Limit width of td */
+}
+/* Alternating row colors for better readability */
+tr.odd  { background-color: #6b5e78; }
+tr.even { background-color: #4f4559; }
+/* Make the name or description column wrap instead of overflow */
+td:nth-child(2) {
+  white-space: normal;                     /* Allow normal line wrapping */
+  word-break: break-word;                  /* Break long words if needed */
+}

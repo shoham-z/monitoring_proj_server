@@ -70,7 +70,27 @@ async function deleteDevice(ip) {
 // Edit device by ID
 async function editDevice(id, ip, name) {
   return new Promise((resolve, reject) => {
-    db.run(`UPDATE devices SET ip = ?, name = ? WHERE id = ?`, [ip, name, id], function (err) {
+    const updates = [];
+    const values = [];
+
+    // Only include the fields that are defined
+    if (ip.trim() !== "") {
+      updates.push("ip = ?");
+      values.push(ip);
+    }
+    if (name.trim() !== "") {
+      updates.push("name = ?");
+      values.push(name);
+    }
+
+    // If neither field is defined, nothing to update
+    if (updates.length === 0) return resolve();
+
+    // Add id for the WHERE clause
+    values.push(id);
+
+    const query = `UPDATE devices SET ${updates.join(", ")} WHERE id = ?`;
+    db.run(query, values, function (err) {
       if (err) {
         if (err.message.includes("UNIQUE")) reject({ error: 'IP and name must be unique' });
         else reject(err);
@@ -79,10 +99,21 @@ async function editDevice(id, ip, name) {
   });
 }
 
+
 // Get devce by IP
-async function getDevice(ip) {
+async function getDeviceIP(ip) {
   return new Promise((resolve, reject) => {
     db.get(`SELECT * FROM devices WHERE ip = ?`, [ip], (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
+    });
+  });
+}
+
+// Get devce by ID
+async function getDeviceID(id) {
+  return new Promise((resolve, reject) => {
+    db.get(`SELECT * FROM devices WHERE id = ?`, [id], (err, row) => {
       if (err) reject(err);
       else resolve(row);
     });
@@ -241,7 +272,8 @@ module.exports = {
   addDevice,
   editDevice,
   deleteDevice,
-  getDevice,
+  getDeviceIP,
+  getDeviceID,
   getDeviceAll,
   isWhitelisted,
   toggleWhitelist,

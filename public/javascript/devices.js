@@ -118,15 +118,13 @@ function edit(e) {
   e.preventDefault();
   const ipEl = document.getElementById("IP Address");
   const nameEl = document.getElementById("Name");
-  const ip = ipEl.value || ipEl.placeholder;
-  const name = nameEl.value || nameEl.placeholder;
-  const oldIP  = ipEl.placeholder;
-  const oldName = nameEl.placeholder;
+  const ip = ipEl.value;
+  const name = nameEl.value;
   const id = document.getElementById("menuId").value;
   // Check if at least one field is filled and if the IP is valid
-  if (!ip && !name) return errorText("Please fill out at least one field\n (IP Address or Name).");
-  if (!isValidIp(ip)) return errorText("Please enter a valid IP address");
-  submitForm("edit", "PUT", { id, ip, name, oldIP, oldName }, "Edited Successfully!");
+  if (!ip && (!name || name.trim() === "")) return errorText("Please fill out at least one field\n (IP Address or Name).");
+  if (!isValidIp(ip) && ip.trim() !== "") return errorText("Please enter a valid IP address");
+  submitForm("edit", "PUT", { id, ip, name }, "Edited Successfully!");
 }
 
 // Function to handle adding a device
@@ -141,12 +139,12 @@ function add(e) {
 }
 
 // Function to handle deleting a device
-function deleteRow(ip, name) {
+function deleteRow(ip) {
   document.getElementById("deleteH1").textContent = `Name: ${name} \n IP: ${ip}`;
   toggleMenu("deleteMenu");
   // On confirmation, call submitForm to delete the device
   document.getElementById('confirmDelete').onclick = () => {
-    submitForm("delete", "DELETE", { ip, name }, "Deleted Successfully!");
+    submitForm("delete", "DELETE", { ip }, "Deleted Successfully!");
     document.getElementById('deleteMenu').style.display = 'none';
   };
 }

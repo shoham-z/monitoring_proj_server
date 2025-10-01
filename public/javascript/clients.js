@@ -76,7 +76,7 @@ async function fetchClients() {
 
     if (res.status === 403 && whitelist.redirect) {showBlocked();}
 
-    document.querySelectorAll("button:not(.gray-btn)").forEach(btn => btn.disabled = false);
+    document.querySelectorAll("button:not(.gray-btn):not([id*='whitelist'])").forEach(btn => btn.disabled = false);
 
     var isEvenWhitelist = false;
     var finalRowWhitelist = "";
