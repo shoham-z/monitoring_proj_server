@@ -2,18 +2,18 @@
 const express = require('express'); // Express framework for server handling
 const path = require('path'); // Path module to manage file paths
 const cors = require('cors'); // CORS (Cross-Origin Resource Sharing) middleware for enabling cross-origin requests
-const logger = require('morgan'); // HTTP request logger middleware
+const logger = require('morgan'); // HTTP request logger middleware (For debugging)
 const { isWhitelisted, getLogs } = require('./routes/server_functions'); // Import functions
-const fs = require('fs');
-const { app: electronApp } = require('electron');
+const fs = require('fs'); // File system module (read/write files)
+const { app: electronApp } = require('electron'); // Electron app lifecycle control
 const https = require("https"); // add this at the top with other imports
+const dotenv = require('dotenv'); // Load environment variables from .env file
 
-const dotenv = require('dotenv');
 const basePath = electronApp.isPackaged
-  ? path.dirname(process.execPath)
-  : __dirname;
-const dbPath = path.join(basePath, 'resources', 'database.db');
-dotenv.config({ path: path.join(basePath, '.env'), quiet: true });
+  ? path.dirname(process.execPath) // If packaged, use install directory
+  : __dirname; // If dev, use current directory
+const dbPath = path.join(basePath, 'resources', 'database.db'); // Path to SQLite database
+dotenv.config({ path: path.join(basePath, '.env'), quiet: true }); // Load .env config from basePath
 
 // Import API router for handling API requests
 const { router } = require('./routes/api');
@@ -22,15 +22,8 @@ const app = express(); // Create a new Express application
 app.use((req, res, next) => {
   const host = req.headers.host;
   // Block access if the host header contains "localhost" or "127.0.0.1"
-  if (host.includes('localhost') || host.includes('127.0.0.1')) {return res.status(404);}
+  if (host.includes('localhost') || host.includes('127.0.0.1')) {return;}
   next();
-});
-
-// Middleware to disable caching in development (removes HTTP 304 responses)
-// Remove this once the application is finished and optimized
-app.use((req, res, next) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private'); // Prevent caching
-    next(); // Continue to the next middleware
 });
 
 // Set up EJS as the view engine
@@ -45,12 +38,12 @@ app.use(cors({
 // HTTP request logging middleware (logs all HTTP requests)
 app.use(logger('dev'));
 
-// Middleware to parse JSON bodies in requests
+// Parse incoming JSON request bodies (up to 10MB)
 app.use(express.json({ limit: '10mb' }));
 // Middleware to parse URL-encoded data in requests (e.g., form submissions)
 app.use(express.urlencoded({ extended: false }));
 
-// // API-specific middleware to check if the client's IP is whitelisted
+// // Middleware to check if the client's IP is whitelisted
 app.use("/api", async (req, res, next) => {
     if (!(await isAllowed(req))) 
     {return res.status(403).json({ redirect: '/blocked.html' });} // Send 403 Forbidden if the IP is not whitelisted
@@ -61,6 +54,7 @@ app.use("/api", async (req, res, next) => {
 // Use the API router to handle requests under the /api path
 app.use('/api', router);
 
+// Prevent direct access to HTML files via URL; force users to use designated page routes
 app.use((req, res, next) => {
   if (req.path.endsWith('.html')) {
     return res.status(404);
@@ -68,37 +62,33 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve the device page when accessing the root URL ('/')
-app.get('/', async (req, res) => {
-    if (await isAllowed(req)){res.sendFile(path.join(__dirname, 'public', 'devices.html'));}
-    else {res.status(403).sendFile(path.join(__dirname, 'public', 'blocked.html'));} // Send the devices.html file as a response
+// Serve the devices page for '/' and '/devices' if whitelisted; otherwise show blocked page
+app.get(['/', '/devices'], async (req, res) => {
+    if (await isAllowed(req)) {
+        res.sendFile(path.join(__dirname, 'public', 'devices.html')); // Send devices page
+    } else {
+        res.status(403).sendFile(path.join(__dirname, 'public', 'blocked.html')); // Send blocked page
+    }
 });
 
-// Serve the devices page, only if the user is authenticated
-app.get('/devices', async (req, res) => {
-    if (await isAllowed(req)){res.sendFile(path.join(__dirname, 'public', 'devices.html'));}
-    else {res.status(403).sendFile(path.join(__dirname, 'public', 'blocked.html'));} // Send the devices.html page as a response
-});
-
-// Serve the clients page, only if the user is authenticated
+// Serve the clients page if whitelisted; otherwise show blocked page
 app.get('/clients', async (req, res) => {
     if (await isAllowed(req)){res.sendFile(path.join(__dirname, 'public', 'clients.html'));}
     else {res.status(403).sendFile(path.join(__dirname, 'public', 'blocked.html'));} // Send the clients.html page as a response
 });
 
-// Serve the logs page, only if the user is authenticated
+// Serve the logs page if whitelisted; otherwise show blocked page
 app.get('/logs', async (req, res) => {
     if (await isAllowed(req)){res.sendFile(path.join(__dirname, 'public', 'logs.html'));}
     else {res.status(403).sendFile(path.join(__dirname, 'public', 'blocked.html'));} // Send the clients.html page as a response
 });
 
-// Serve static files (e.g., images, stylesheets) from the 'public' directory
+// Serve static assets (images, CSS, JS) from 'public'; default page is devices.html
 app.use(express.static(path.join(__dirname, 'public'), { index: 'devices.html' }));
 
 switch (process.env.PROTOCOL){
   case "HTTPS": {
     //Load SSL certificate + key
-    console.log (path.join(basePath, "resources", "ceretificates", "server.key"))
     const options = {
       key: fs.readFileSync(path.join(basePath, "resources", "ceretificates", "server.key")),
       cert: fs.readFileSync(path.join(basePath, "resources", "ceretificates", "server.cert")),
@@ -119,41 +109,46 @@ switch (process.env.PROTOCOL){
     });
     break;
   }
+  default: {
+  console.error(`❌ Invalid PROTOCOL '${process.env.PROTOCOL}'. Please set it to 'HTTP' or 'HTTPS'.`);
+  process.exit(1); // Stop the server
+  }
 }
 
-// Export the app for potential testing or external use
+// Export the Express app to run the website from the main Electron process
 module.exports = app;
 
-async function syncDatabase(){
-  {
+// Sync local database with another server at startup
+async function syncDatabase() {
   try {
-    const dbBuffer = fs.readFileSync(dbPath);
-    const logs = await getLogs();
-    const time = logs[0]?.time || 0;
+    const dbBuffer = fs.readFileSync(dbPath); // Read local DB file
+    const logs = await getLogs(); // Get recent logs to send as sync reference
+    const time = logs[0]?.time || 0; // Use the latest log time or 0 if none
 
+    // Send DB to other server via POST for synchronization
     const response = await fetch(`${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}/api/sync`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/octet-stream',
         'Content-Length': dbBuffer.length,
-        'x-sync-key': process.env.SYNC_SECRET,
+        'x-sync-key': process.env.SYNC_SECRET, // Authentication for sync
         'time': time
       },
       body: dbBuffer
     });
 
-    if (response.status === 202){
-      const buffer = Buffer.from(await response.arrayBuffer());
-      fs.writeFileSync(dbPath, buffer);
+    if (response.status === 202) {
+      const buffer = Buffer.from(await response.arrayBuffer()); // Receive updated DB
+      fs.writeFileSync(dbPath, buffer); // Overwrite local DB
       console.log("✅ Database successfully synced from other server.");
     }
   } catch (err) {
-    console.error("❌ Failed to sync at startup:", err.message);
+    console.error("❌ Failed to sync at startup:", err.message); // Log sync failure
   }
 }
-}
 
-async function isAllowed(req){
-  const ip = req.socket.remoteAddress;  // Get the client IP
-  return [process.env.HOST, process.env.OTHER_HOST].includes(ip) || await isWhitelisted(ip);
+// Check if the client IP is allowed to access the server
+async function isAllowed(req) {
+  const ip = req.socket.remoteAddress;  // Get client IP
+  return [process.env.HOST, process.env.OTHER_HOST].includes(ip) || await isWhitelisted(ip); // Allow if matches host or in whitelist
 }
