@@ -48,7 +48,7 @@ async function fetchClients() {
     var finalRowClients = "";
 
     // Build clients table rows as a single HTML string
-    const clientRows = clients.map(client => {
+    const clientRows = clients.map((client, index) => {
       const date = new Date(client[1]);
       const options = {
         timeZone: 'Asia/Jerusalem',
@@ -61,7 +61,7 @@ async function fetchClients() {
         second: '2-digit'
       };
       const time = date.toLocaleString('en-GB', options);
-      finalRowClients = `<tr class="${isEvenClients ? "even" : "odd"}"><td>${client[0]}</td><td>${time}</td></tr>`;
+      finalRowClients = `<tr class="${index % 2 === 0 ? "even" : "odd"}"><td>${client[0]}</td><td>${time}</td></tr>`;
       isEvenClients = !isEvenClients;
       return finalRowClients;
     }).join("");
@@ -78,12 +78,9 @@ async function fetchClients() {
 
     document.querySelectorAll("button:not(.gray-btn):not([id*='whitelist'])").forEach(btn => btn.disabled = false);
 
-    var isEvenWhitelist = false;
-    var finalRowWhitelist = "";
-
     // Build whitelist table rows using Promise.all to handle async host check
     const whitelistRows = await Promise.all(
-      whitelist.map(async row => {
+      whitelist.map(async (row, index) => { // use index
         const host = await isHost(row.ip);
         const disableReason = host
           ? "Cannot remove hosting PC"
@@ -94,8 +91,8 @@ async function fetchClients() {
           ? `disabled title="${disableReason}"`
           : "";
 
-        finalRowWhitelist = `
-          <tr class="${isEvenWhitelist ? "even" : "odd"}">
+        return `
+          <tr class="${index % 2 === 0 ? 'even' : 'odd'}">
             <td>${row.ip}</td>
             <td>${row.name}</td>
             <td>
@@ -105,9 +102,6 @@ async function fetchClients() {
               </button>
             </td>
           </tr>`;
-        
-        isEvenWhitelist = !isEvenWhitelist;
-        return finalRowWhitelist;
       })
     );
 

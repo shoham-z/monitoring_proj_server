@@ -158,15 +158,15 @@ async function isPortInUse(port) {
 
 // When the app is ready, start the server, create the tray, and show activation message
 app.whenReady().then(async () => {
-  app.commandLine.appendSwitch('ignore-certificate-errors'); // Ignore SSL errors (self-signed certificates)
-
   if (!["HTTP","HTTPS"].includes(process.env.PROTOCOL)) {
   showErrorAndExit(`Invalid PROTOCOL '${process.env.PROTOCOL}'. Please set it to 'HTTP' or 'HTTPS' in the .env file.`);
   }
 
   if (await isPortInUse(process.env.PORT)){
-    showErrorAndExit(`Port ${process.env.PORT} is already in use. Please close the other app or change the port in the .env file.`);
+    showErrorAndExit(`Port ${process.env.PORT} is already in use. Please close the other app.`);
   }
+  
+  app.commandLine.appendSwitch('ignore-certificate-errors'); // Ignore SSL errors (self-signed certificates)
 
   require('./app.js');  // Start the monitoring server
 

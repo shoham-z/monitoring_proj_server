@@ -25,14 +25,13 @@ async function loadLogs(page, direction, search) {
       return;
     } else {allLoadedDown = false;}
 
-    var isEven = false;
-
-    // insert rows (your current insert logic)
+    // Insert rows with consistent alternating colors
     const tbody = document.querySelector("tbody");
     if (direction === "afterbegin") logs.reverse();
-    logs.forEach(row => {
+
+    logs.forEach((row, index) => {
       const tr = `
-        <tr class="${isEven ? "even" : "odd"}">
+        <tr class="${index % 2 === 0 ? "even" : "odd"}">
           <td>${row.type}</td>
           <td>${msToString(row.time)}</td>
           <td>${row.clientIP}</td>
@@ -42,7 +41,6 @@ async function loadLogs(page, direction, search) {
           <td>${row.newName === "null" ? "" : row.newName || ""}</td>
         </tr>
       `;
-      isEven = !isEven;
       tbody.insertAdjacentHTML(direction, tr);
     });
 

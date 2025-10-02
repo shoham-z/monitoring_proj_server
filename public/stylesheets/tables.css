@@ -35,8 +35,8 @@ td {
   max-width: 100px;                        /* Limit width of td */
 }
 /* Alternating row colors for better readability */
-tr.odd  { background-color: #6b5e78; }
-tr.even { background-color: #4f4559; }
+tr.even  { background-color: #6b5e78; }
+tr.odd { background-color: #4f4559; }
 /* Make the name or description column wrap instead of overflow */
 td:nth-child(2) {
   white-space: normal;                     /* Allow normal line wrapping */

@@ -7,27 +7,34 @@ async function loadDeviceData() {
     const res = await fetch(`${url}/api/getAll`);
 
     // If the user is not authorized or forbidden, redirect to blocked page
-    if (res.status === 403){return showBlocked();}
+    if (res.status === 403) return showBlocked();
 
     // If the response is not OK, throw an error
     if (!res.ok) throw new Error("Server error");
 
     // Parse the response as JSON to get the devices data
-    const devices = await res.json()
+    const devices = await res.json();
 
     const tbody = document.querySelector("tbody");
+
     // Populate the table with the devices data
-    tbody.innerHTML = devices.map(row => `
+    tbody.innerHTML = devices.map((row) => `
       <tr>
         <td>${row.ip}</td>
         <td>${row.name}</td>
         <td style="white-space: nowrap;">
-          <button id="edit ${row.ip}" class="green-btn" onclick="setMenu('edit', '${row.ip}', '${row.name}', ${row.id})">Edit</button>
-          <button id="add ${row.ip}" class="red-btn" onclick="deleteRow('${row.ip}', '${row.name}')">Delete</button>
+          <button id="edit ${row.ip}" class="green-btn" 
+            onclick="setMenu('edit', '${row.ip}', '${row.name}', ${row.id})">
+            Edit
+          </button>
+          <button id="add ${row.ip}" class="red-btn" 
+            onclick="deleteRow('${row.ip}', '${row.name}')">
+            Delete
+          </button>
         </td>
       </tr>`).join("");
 
-      filterTable();
+    filterTable();
 
     document.querySelectorAll("button:not(.gray-btn)").forEach(btn => btn.disabled = false);
     const title = document.getElementById("title");
@@ -59,29 +66,10 @@ function filterTable() {
     row.classList.remove("even", "odd");
 
     if (match) {
-      row.classList.add(visibleIndex % 2 === 0 ? "even" : "odd");
+      row.classList.add((visibleIndex+1) % 2 === 0 ? "even" : "odd");
       visibleIndex++;
     }
   });
-}
-
-let successTimeout;
-function showSuccessMessage(message) {
-  const msg = document.getElementById("success-message");
-
-  msg.style.visibility = "visible";
-  msg.textContent = message;
-
-  // Clear the previous timeout, if any
-  if (successTimeout) {
-    clearTimeout(successTimeout);
-  }
-
-  // Set a new timeout to hide the message after 5 seconds
-  successTimeout = setTimeout(() => {
-    msg.style.visibility = "hidden";
-    successTimeout = null; // optional: clear the reference
-  }, 5000);
 }
 
 // Function to submit a form (add, edit, or delete device data)

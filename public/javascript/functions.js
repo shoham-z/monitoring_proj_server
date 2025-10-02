@@ -45,3 +45,22 @@ function showBlocked() {
     document.querySelectorAll("tbody").forEach(tbody => {tbody.innerHTML = "";});
     document.querySelectorAll("h1").forEach(h1 => {if (h1.id !== "title")h1.textContent = "";})
 }
+
+let successTimeout;
+function showSuccessMessage(message) {
+  const msg = document.getElementById("success-message");
+
+  msg.style.visibility = "visible";
+  msg.textContent = message;
+
+  // Clear the previous timeout, if any
+  if (successTimeout) {
+    clearTimeout(successTimeout);
+  }
+
+  // Set a new timeout to hide the message after 5 seconds
+  successTimeout = setTimeout(() => {
+    msg.style.visibility = "hidden";
+    successTimeout = null; // optional: clear the reference
+  }, 5000);
+}
