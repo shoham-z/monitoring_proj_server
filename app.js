@@ -86,6 +86,7 @@ app.get('/logs', async (req, res) => {
 // Serve static assets (images, CSS, JS) from 'public'; default page is devices.html
 app.use(express.static(path.join(__dirname, 'public'), { index: 'devices.html' }));
 
+(async () => {
 switch (process.env.PROTOCOL){
   case "HTTPS": {
     //Load SSL certificate + key
@@ -109,11 +110,8 @@ switch (process.env.PROTOCOL){
     });
     break;
   }
-  default: {
-  console.error(`❌ Invalid PROTOCOL '${process.env.PROTOCOL}'. Please set it to 'HTTP' or 'HTTPS'.`);
-  process.exit(1); // Stop the server
-  }
 }
+})();
 
 // Export the Express app to run the website from the main Electron process
 module.exports = app;

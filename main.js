@@ -1,6 +1,7 @@
 const { app, BrowserWindow, Tray, Menu, dialog } = require('electron');  // Electron modules for app lifecycle, windows, tray, menus, and dialogs
 const path = require('path');  // Path module to manage file paths
 const { shell } = require('electron');  // Electron module to open files/URLs with the system default apps
+const net = require('net'); // Node.js module for TCP/IPC networking (used to check if a port is in use)
 
 // Check if the app is in development mode or production
 const isDev = !app.isPackaged;  // If the app is not packaged, it is in development mode
@@ -134,10 +135,39 @@ async function createMenu() {
   Menu.setApplicationMenu(menu);  // Apply as application menu
 }
 
+function showErrorAndExit(message) {
+  console.error(message); // Log for debugging if console is visible
+  dialog.showErrorBox("Server Startup Error", message); // Show GUI error to user
+  process.exit(1); // Stop the app
+}
+
+async function isPortInUse(port) {
+  return new Promise((resolve, reject) => {
+    const tester = net.createServer()
+      .once('error', err => {
+        if (err.code === 'EADDRINUSE') resolve(true); // Port is taken
+        else reject(err); // Other error
+      })
+      .once('listening', () => {
+        tester.close();      // Close immediately — we just wanted to check
+        resolve(false);      // Port is free
+      })
+      .listen(port, '0.0.0.0'); // Try binding to check
+  });
+}
 
 // When the app is ready, start the server, create the tray, and show activation message
 app.whenReady().then(async () => {
   app.commandLine.appendSwitch('ignore-certificate-errors'); // Ignore SSL errors (self-signed certificates)
+
+  if (!["HTTP","HTTPS"].includes(process.env.PROTOCOL)) {
+  showErrorAndExit(`Invalid PROTOCOL '${process.env.PROTOCOL}'. Please set it to 'HTTP' or 'HTTPS' in the .env file.`);
+  }
+
+  if (await isPortInUse(process.env.PORT)){
+    showErrorAndExit(`Port ${process.env.PORT} is already in use. Please close the other app or change the port in the .env file.`);
+  }
+
   require('./app.js');  // Start the monitoring server
 
   createTray();  // Create system tray icon and menu
