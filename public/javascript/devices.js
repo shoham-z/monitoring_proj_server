@@ -81,20 +81,20 @@ async function submitForm(request, method, body, successMessage) {
       body: JSON.stringify(body)
     });
 
-    const data = await res.json();
+    await res.text();
 
-    // Handle session expiry or IP block
-    if (res.status === 403 && data.redirect){return showBlocked();}
+    // Handle unwhitelisted ip
+    if (res.status === 403){return showBlocked();}
+
+    // Show error if IP and name are not unique
+    if (res.status === 409) {return errorText('IP and name must be unique');}
+
     // If no error in the response, show success message and reload device data
-    if (!data?.error) {
-      showSuccessMessage(successMessage);
-      loadDeviceData();
-      toggleMenu("Menu", true);
-    } else {
-      // Show error if IP and name are not unique
-      errorText('IP and name must be unique');
-    }
+    showSuccessMessage(successMessage);
+    loadDeviceData();
+    toggleMenu("Menu", true);
   } catch (err) {
+    console.log(err)
     console.error(`Error during ${method} to ${request}:`, err);
     // Show error if form submission fails
     errorText(`Error submitting the form.\n Please try again.`);
@@ -127,7 +127,7 @@ function add(e) {
 }
 
 // Function to handle deleting a device
-function deleteRow(ip) {
+function deleteRow(ip, name) {
   document.getElementById("deleteH1").textContent = `Name: ${name} \n IP: ${ip}`;
   toggleMenu("deleteMenu");
   // On confirmation, call submitForm to delete the device

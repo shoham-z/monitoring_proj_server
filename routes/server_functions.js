@@ -52,20 +52,26 @@ db.exec(`
   );
 `);
 
-// Add new device
+/**
+ * Add new device
+ * @param {string} ip - IP address of the new device
+ * @param {string} name - Name of the new device
+ * @returns {Promise<void>} Resolves on success, rejects with error on failure
+ */
 async function addDevice(ip, name) {
   return new Promise((resolve, reject) => {
     db.run(`INSERT INTO devices (ip, name) VALUES (?, ?)`, [ip, name], function (err) {
-      if (err) {
-        // Handle UNIQUE constraint errors (duplicate IP or name)
-        if (err.message.includes("UNIQUE")) reject({ error: 'IP and name must be unique' });
-        else reject(err); // Handle other errors
-      } else resolve(); // Successfully updated device
+      if (err) reject(err); // Handle errors
+      else resolve(); // Successfully updated device
     });
   });
 }
 
-// Delete device by IP
+/**
+ * Delete device by IP
+ * @param {String} ip - IP address of the device to be deleted
+ * @returns {Promise<void>} Resolves on success, rejects with error on failure
+ */
 async function deleteDevice(ip) {
   return new Promise((resolve, reject) => {
     db.run(`DELETE FROM devices WHERE ip = ?`, [ip], function (err) {
@@ -75,6 +81,13 @@ async function deleteDevice(ip) {
   });
 }
 
+/**
+ * Edit device by IP
+ * @param {String} id - ID of the device (Primary Key)
+ * @param {String} ip - IP address of the device to be edited
+ * @param {String} name Name of the device to be edited
+ * @returns {Promise<void>} Resolves on success, rejects with error on failure
+ */
 async function editDevice(id, ip, name) {
   return new Promise((resolve, reject) => {
     const updates = []; // Array to store columns to update
@@ -102,16 +115,18 @@ async function editDevice(id, ip, name) {
     // Run the query
     db.run(query, values, function (err) {
       if (err) {
-        // Handle UNIQUE constraint errors (duplicate IP or name)
-        if (err.message.includes("UNIQUE")) reject({ error: 'IP and name must be unique' });
-        else reject(err); // Handle other errors
+      if (err) reject(err); // Handle errors
+      else resolve(); // Successfully updated device
       } else resolve(); // Successfully updated device
     });
   });
 }
 
-
-// Get device by IP
+/**
+ * Get device by IP
+ * @param {String} ip - IP address of the device
+ * @returns {Promise<Object|undefined>} Resolves with the device row (or undefined if not found)
+ */
 async function getDeviceIP(ip) {
   return new Promise((resolve, reject) => {
     db.get(`SELECT * FROM devices WHERE ip = ?`, [ip], (err, row) => {
@@ -121,7 +136,11 @@ async function getDeviceIP(ip) {
   });
 }
 
-// Get device by ID
+/**
+ * Get device by ID
+ * @param {String} id - ID of the device
+ * @returns {Promise<Object|undefined>} Resolves with the device row (or undefined if not found)
+ */
 async function getDeviceID(id) {
   return new Promise((resolve, reject) => {
     db.get(`SELECT * FROM devices WHERE id = ?`, [id], (err, row) => {
@@ -131,7 +150,10 @@ async function getDeviceID(id) {
   });
 }
 
-// Get all devices
+/**
+ * Get all devices
+ * @returns {Promise<Array<Object>>} Resolves with an array of device rows (empty array if none found)
+ */
 async function getDeviceAll() {
   return new Promise((resolve, reject) => {
     db.all(`SELECT * FROM devices`, (err, rows) => {
@@ -141,7 +163,11 @@ async function getDeviceAll() {
   });
 }
 
-// Check if IP is whitelisted
+/**
+ * Check if IP is whitelisted
+ * @param {String} ip - IP address of the client 
+ * @returns {Promise<Boolean>} Resolves with true if the client is whitelisted, false otherwise
+ */
 async function isWhitelisted(ip) {
   return new Promise((resolve, reject) => {
     db.get(`SELECT * FROM whitelist WHERE ip = ?`, [ip], (err, row) => {
@@ -151,7 +177,13 @@ async function isWhitelisted(ip) {
   });
 }
 
-// Add or remove a client from the "whitelist" table
+/**
+ * Add or remove a client from the "whitelist" table
+ * @param {Boolean} isWhitelist - Current whitelist status of the client (true if already whitelisted)
+ * @param {String} clientIp - The IP address of the client
+ * @param {String} name - The name of the client
+ * @returns {Promise<void>} Resolves on success, rejects with error on failure
+ */
 async function toggleWhitelist(isWhitelist, clientIp, name) {
   return new Promise((resolve, reject) => {
     if (isWhitelist) {
@@ -165,7 +197,7 @@ async function toggleWhitelist(isWhitelist, clientIp, name) {
       db.run(`INSERT INTO whitelist (ip, name) VALUES (?, ?)`, [clientIp, name], function (err) {
         if (err) {
           // Handle UNIQUE constraint errors (duplicate IP or name)
-          if (err.message.includes("UNIQUE")) reject({ error: 'IP and name must be unique' });
+          if (err.message.includes("UNIQUE")) reject(err.message);
           else reject(err); // Handle other errors
         } else resolve(); // Successfully added to whitelist
       });
@@ -173,7 +205,10 @@ async function toggleWhitelist(isWhitelist, clientIp, name) {
   });
 }
 
-// Get all whitelisted IP addresses
+/**
+ * Get all whitelisted clients
+ * @returns {Promise<Array<Object>>} Resolves with an array of whitelist entries (empty array if none found)
+ */
 async function getWhitelistAll() {
   return new Promise((resolve, reject) => {
     db.all(`SELECT * FROM whitelist`, (err, rows) => {
@@ -183,7 +218,16 @@ async function getWhitelistAll() {
   });
 }
 
-// Save a new log entry
+/**
+ * Save a new log entry
+ * @param {String} type - The type of action or event
+ * @param {String} clientIP - The IP address of the client who performed the action
+ * @param {String} ip - The IP address affected by the action
+ * @param {String} name - The name associated with the affected IP
+ * @param {String|null} newIP - The new IP after the action (if applicable)
+ * @param {String|null} newName - The new name after the action (if applicable)
+ * @returns {Promise<void>} Resolves on success, rejects with error on failure
+ */
 async function saveLog(type, clientIP, ip, name, newIP, newName){
   return new Promise((resolve, reject) => {
   db.run(`INSERT INTO logs (type, time, clientIP, ip, name, newIP, newName) VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -195,7 +239,12 @@ async function saveLog(type, clientIP, ip, name, newIP, newName){
   });
 }
 
-// Retrieve logs from the "logs" table, with optional pagination and search
+/**
+ * Retrieve logs from the "logs" table, with optional pagination and search
+ * @param {number} [page=1] - Page number for pagination (use -1 to disable pagination)
+ * @param {string} [search=""] - Optional search term to filter logs by type, time, IPs, or names
+ * @returns {Promise<Array<Object>>} Resolves with an array of log entries (empty array if none found)
+ */
 async function getLogs(page = 1, search = "") {
   return new Promise((resolve, reject) => {
     // Base query: select all columns and format the timestamp
@@ -248,7 +297,16 @@ async function getLogs(page = 1, search = "") {
   });
 }
 
-// Forward incoming requests to another server if conditions are met
+/**
+ * Forward incoming requests to another server if certain conditions are met.
+ * 
+ * Conditions:
+ * - The request has not already been forwarded (no 'forwarded' header).
+ * - The request originates from an allowed host (process.env.HOST or process.env.OTHER_HOST).
+ * 
+ * @param {express.Request} req - HTTP request to be forwarded to the other server.
+ * @returns {Promise<void>} Resolves on success, rejects with error on failure
+ */
 async function ForwardToServer2(req) {
   // Check if request has not already been forwarded
   // and if the request originates from one of the allowed hosts
@@ -272,12 +330,19 @@ async function ForwardToServer2(req) {
       console.error("Failed to forward request to other server: ", req.path);
     }
   }
-
-  // Return nothing; function only forwards requests if needed
   return;
 }
 
-// Overwrite the current database file with the incoming data from a request
+/**
+ * Overwrite the current database file with data from an incoming HTTP request.
+ * Pipes the request body directly into the database file.
+ * 
+ * Handles client aborts and file write errors, sending appropriate HTTP responses.
+ * 
+ * @param {express.Request} req - The incoming HTTP request
+ * @param {Express.Response} res - The HTTP response object
+ * @returns {Promise<void>} Resolves when the database has been successfully overwritten, rejects on error or if the client aborts
+ */
 async function overwriteDatabase(req, res) {
   return new Promise((resolve, reject) => {
     // Create a writable stream to save the incoming database file

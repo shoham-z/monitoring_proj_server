@@ -207,6 +207,9 @@ function addWhitelistMenu(){
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isWhitelisted: false, clientIp, name })
     });
+
+    await res.text();
+
     // Handle session expiry or IP block
     switch (res.status){
       case 403: {
@@ -216,16 +219,11 @@ function addWhitelistMenu(){
         return errorText("IP and name must be unique");
       }
     }
-    const data = await res.json();
+    
     // If no error in the response, show success message and reload clients data data
-    if (!data?.error) {
-      showSuccessMessage("IP was successfully added to the whitelist");
-      fetchClients();
-      addWhitelistMenu();
-    } else {
-      // Show error if IP and name are not unique
-      errorText(data.error);
-    }
+    showSuccessMessage("IP was successfully added to the whitelist");
+    fetchClients();
+    addWhitelistMenu();
     } catch (err) {
       console.error(`Error adding ${clientIp} to the whitelist:`, err);
       // Show error if form submission fails
