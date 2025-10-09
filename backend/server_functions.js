@@ -2,23 +2,21 @@ const path = require('path'); // Path module to manage file paths
 const sqlite = require('sqlite3').verbose(); // SQLite3 module for interacting with SQLite databases (verbose mode for detailed errors)
 const fs = require('fs'); // File system module (read/write files)
 
-let dbPath;
-try {
-  const { app } = require('electron'); // Import Electron's app module to check app environment
-  const isDev = !app || !app.isPackaged; // Determine if the app is in development mode (not packaged)
+let dbPath, errorFolder;
+const { app } = require('electron'); // Import Electron's app module to check app environment
+const isDev = !app.isPackaged; // Determine if the app is in development mode (not packaged)
 
-  // Set database path depending on environment
-  dbPath = isDev
-    ? path.join(__dirname, '../resources', 'database.db') // In dev: database is in ../resources relative to current file
-    : path.join(process.resourcesPath, 'database.db');    // In production: database is in the app's resources folder
-} catch (e) {
-  // Fallback in case Electron app module is not available
-  dbPath = path.join(__dirname, 'database.db'); // Use current directory as database path
-}
+// Set database path depending on environment
+dbPath = isDev
+  ? path.join(__dirname, '../resources', 'database.db') // In dev: database is in ../resources relative to current file
+  : path.join(process.resourcesPath, 'database.db');    // In production: database is in the app's resources folder
+errorFolder = isDev
+  ? path.join(__dirname, '../resources', 'error_logs') // In dev: database is in ../resources relative to current file
+  : path.join(process.resourcesPath, 'error_logs');    // In production: database is in the app's resources folder
 
 // Open the SQLite database
 let db = new sqlite.Database(dbPath, (err) => {
-  if (err) console.log("Error Occurred - " + err.message); // Log error if database cannot be opened
+  if (err) console.error("Error Occurred: ", err); // Log error if database cannot be opened
   else console.log("DataBase Connected"); // Log success message when database is connected
 });
 
@@ -114,10 +112,8 @@ async function editDevice(id, ip, name) {
 
     // Run the query
     db.run(query, values, function (err) {
-      if (err) {
-      if (err) reject(err); // Handle errors
-      else resolve(); // Successfully updated device
-      } else resolve(); // Successfully updated device
+      if (err) reject(err);
+      else resolve();
     });
   });
 }
@@ -196,9 +192,7 @@ async function toggleWhitelist(isWhitelist, clientIp, name) {
       // If not whitelisted, add the client to the whitelist
       db.run(`INSERT INTO whitelist (ip, name) VALUES (?, ?)`, [clientIp, name], function (err) {
         if (err) {
-          // Handle UNIQUE constraint errors (duplicate IP or name)
-          if (err.message.includes("UNIQUE")) reject(err.message);
-          else reject(err); // Handle other errors
+          reject(err);
         } else resolve(); // Successfully added to whitelist
       });
     }
@@ -314,23 +308,17 @@ async function ForwardToServer2(req) {
     !req.headers['forwarded'] &&
     [process.env.HOST, process.env.OTHER_HOST].includes(req.socket.remoteAddress)
   ) {
-    try {
-      // Forward the request to the other server
-      await fetch(`${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}/api${req.path}`, {
-        method: req.method, // Use the same HTTP method as the original request
-        headers: {
-          'Content-Type': 'application/json',
-          'forwarded': 'true',          // Mark the request as forwarded to avoid loops
-          'original-ip': req.socket.remoteAddress // Pass the original client's IP
-        },
-        body: JSON.stringify(req.body)   // Forward the request body as JSON
-      });
-    } catch (err) {
-      // Log any errors that occur while forwarding
-      console.error("Failed to forward request to other server: ", req.path);
-    }
+    // Forward the request to the other server
+    await fetch(`${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}/api${req.path}`, {
+      method: req.method, // Use the same HTTP method as the original request
+      headers: {
+        'Content-Type': 'application/json',
+        'forwarded': 'true',          // Mark the request as forwarded to avoid loops
+        'original-ip': req.socket.remoteAddress // Pass the original client's IP
+      },
+      body: JSON.stringify(req.body)   // Forward the request body as JSON
+    });
   }
-  return;
 }
 
 /**
@@ -375,6 +363,74 @@ async function overwriteDatabase(req, res) {
   });
 }
 
+/**
+ * Logs any error message or object to a file in the "errors" directory.
+ * Creates the directory and file if they don't exist.
+ * @param {string} context - Short label describing where the error occurred (e.g. "Add Device", "Save Log").
+ * @param {Error|string} error - The error object or message to log.
+ */
+async function logError(context, error) {
+
+  if (error?.cause?.code === "UND_ERR_CONNECT_TIMEOUT") return;
+  console.error(error);
+
+  try {
+    // Ensure directory exists
+    if (!fs.existsSync(errorFolder)) {
+      fs.mkdirSync(errorFolder, { recursive: true });
+    }
+
+    // Unique log filename per error (timestamp + random suffix)
+    const now = new Date().toLocaleString("en-IL", {
+      timeZone: "Asia/Jerusalem",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+
+    // Format for file name
+    const fileTimestamp = now.trim()
+      .replace(/\//g, "-")
+      .replace(",", "")
+      .replace(/ /g, "__")
+      .replace(/:/g, ".");
+
+    const logFile = path.join(errorFolder,`${fileTimestamp}__error-${Math.random().toString(36).slice(2, 8)}.log`);
+
+    // 🔥 Format error to include stack + cause if present
+    let fullError = error.stack || String(error);
+    if (error.cause) {
+      fullError += `\nCaused by: ${error.cause.stack || error.cause}`;
+    }
+
+    const message = `[${now}] [${context}] ${fullError}\n`;
+
+    await fs.promises.writeFile(logFile, message, "utf8");
+  } catch (err) {
+    // If logging itself fails, output to console
+    console.error("Failed to log error:", err);
+  }
+}
+
+/**
+ * Function to validate if an input is a valid IPv4 address
+ * @param {String} ip 
+ * @returns {Boolean} true if given a valid IPv4 address
+ */
+function isValidIPv4(ip) {
+  const validFormat = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/.test(ip);
+  if (!validFormat) return false;
+
+  // Reject 0.0.0.0 and 255.255.255.255
+  if (ip === "0.0.0.0" || ip === "255.255.255.255") return false;
+
+  return true;
+}
+
 module.exports = {
   addDevice,
   editDevice,
@@ -388,5 +444,7 @@ module.exports = {
   saveLog,
   getLogs,
   ForwardToServer2,
-  overwriteDatabase
+  overwriteDatabase,
+  logError,
+  isValidIPv4
 };

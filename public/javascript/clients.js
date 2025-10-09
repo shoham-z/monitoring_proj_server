@@ -159,8 +159,12 @@ async function removeWhitelistMenu(clientIp, name) {
         body: JSON.stringify({ isWhitelisted: true, clientIp, name }),
       });
 
-    if (res.status === 403){showBlocked();}
-      showSuccessMessage(`IP was removed successfully`);
+    if (res.status === 403){return showBlocked();}
+    if (res.status === 500){
+      menu.style.display = "none";
+      return showMessage(`Failed to remove IP. Please try again.`, true);
+    }
+      showMessage(`IP was removed successfully`);
 
       // Reload the client list
       await fetchClients();
@@ -169,7 +173,7 @@ async function removeWhitelistMenu(clientIp, name) {
 
     } catch (err) {
       console.error(`Failed to remove IP:`, err);
-      alert(`Failed to remove IP. Please try again.`);
+      showMessage(`Failed to remove IP. Please try again.`, true);
     }
   };
 }
@@ -199,7 +203,7 @@ function addWhitelistMenu(){
     const name = document.getElementById("Name").value;
     // Check if both fields are filled and if the IP is valid
     if (!clientIp || !name) return errorText("Please fill out all fields.");
-    if (!isValidIp(clientIp)) return errorText("Please enter a valid IP address");
+    if (!isValidIPv4(clientIp)) return errorText("Please enter a valid IP address");
 
     try {
     const res = await fetch(`${url}/api/whitelist`, {
@@ -208,7 +212,7 @@ function addWhitelistMenu(){
       body: JSON.stringify({ isWhitelisted: false, clientIp, name })
     });
 
-    await res.text();
+    await res.json();
 
     // Handle session expiry or IP block
     switch (res.status){
@@ -221,7 +225,7 @@ function addWhitelistMenu(){
     }
     
     // If no error in the response, show success message and reload clients data data
-    showSuccessMessage("IP was successfully added to the whitelist");
+    showMessage("IP was successfully added to the whitelist");
     fetchClients();
     addWhitelistMenu();
     } catch (err) {

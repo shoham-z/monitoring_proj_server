@@ -3,7 +3,7 @@ const express = require('express'); // Express framework for server handling
 const path = require('path'); // Path module to manage file paths
 const cors = require('cors'); // CORS (Cross-Origin Resource Sharing) middleware for enabling cross-origin requests
 const logger = require('morgan'); // HTTP request logger middleware (For debugging)
-const { isWhitelisted, getLogs } = require('./routes/server_functions'); // Import functions
+const { isWhitelisted, getLogs } = require('./backend/server_functions'); // Import functions
 const fs = require('fs'); // File system module (read/write files)
 const { app: electronApp } = require('electron'); // Electron app lifecycle control
 const https = require("https"); // add this at the top with other imports
@@ -16,7 +16,7 @@ const dbPath = path.join(basePath, 'resources', 'database.db'); // Path to SQLit
 dotenv.config({ path: path.join(basePath, '.env'), quiet: true }); // Load .env config from basePath
 
 // Import API router for handling API requests
-const { router } = require('./routes/api');
+const { router } = require('./backend/api');
 const app = express(); // Create a new Express application
 
 app.use((req, res, next) => {

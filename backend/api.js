@@ -2,14 +2,14 @@
 const express = require('express'); // Express framework for server handling
 const router = express.Router(); // Router for API routes
 // Import specific functions from 'server_functions.js' for handling device data, user authentication, etc.
-const { addDevice, editDevice, deleteDevice, getDeviceIP, getDeviceID, getDeviceAll, toggleWhitelist, getWhitelistAll, saveLog, getLogs, ForwardToServer2, overwriteDatabase } = require('./server_functions'); 
+const { addDevice, editDevice, deleteDevice, getDeviceIP, getDeviceID, getDeviceAll, toggleWhitelist, getWhitelistAll, saveLog, getLogs, ForwardToServer2, overwriteDatabase, logError, isValidIPv4 } = require('./server_functions'); 
 const path = require('path'); // Path module to manage file paths
 const fs = require('fs'); // File system module (read/write files)
 
 let dbPath;
 try {
   const { app } = require('electron'); // Import Electron's app module to check app environment
-  const isDev = !app || !app.isPackaged; // Determine if the app is in development mode (not packaged)
+  const isDev = !app.isPackaged; // Determine if the app is in development mode (not packaged)
 
   // Set database path depending on environment
   dbPath = isDev
@@ -40,10 +40,9 @@ router.use((req, res, next) => {
 router.get('/getAll', async (req, res) => {
     try {
         const devices = await getDeviceAll(); // Fetch all devices from the database
-        //await saveLog("Get Devices", req.headers['original-ip'] || req.socket.remoteAddress);
         res.status(200).json(devices); // Return the devices as JSON response
-    } catch (error) {
-        console.error("Error fetching devices:", error); // Log any errors
+    } catch (err) {
+        await logError("Error fetching devices", err);
         res.status(500).json({ error: "Internal Server Error" }); // Return a 500 status if an error occurs
     }
 });
@@ -55,14 +54,15 @@ router.get('/getAll', async (req, res) => {
 router.get('/get', async (req, res) => {
     try {
         const { ip } = req.query;
+        if (ip === undefined) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missing
+        if (!isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
         const deviceData = await getDeviceIP(ip); // Fetch a single device based on the provided IP address
         if (!deviceData) {
-            return res.status(404).send("Device not found"); // Return 404 if no device is found for the given IP
+            return res.status(404).json({ error: "Device not found" }); // Return 404 if no device is found for the given IP
         }
-        //await saveLog("Get Device", req.headers['original-ip'] || req.socket.remoteAddress);
         res.status(200).json(deviceData); // Return the device data as JSON response
-    } catch (error) {
-        console.error("Error fetching device:", error); // Log any errors
+    } catch (err) {
+        await logError("Error fetching device", err);
         res.status(500).json({ error: "Internal Server Error" }); // Return 500 status if an error occurs
     }
 });
@@ -73,22 +73,28 @@ router.get('/get', async (req, res) => {
 */
 router.post('/add', async (req, res) => {
     const { ip, name } = req.body;
-    if (!ip || !name) {
-        return res.status(400).send("Missing required fields"); // Return 400 if required fields are missing
-    }
-    
+    if ([ip, name].includes(undefined)) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missin}
+    if (!isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
+    if (name.trim() === "") return res.status(400).json({ error: "Name cannot be empty" }); // Return 400 if required fields are missing
+
     try {
         await addDevice(ip, name); // Add the new device to the database
-        await saveLog("Add Device", req.headers['original-ip'] || req.socket.remoteAddress, ip, name);
-        ForwardToServer2(req).catch(console.error);
-        res.status(201).send("Device added successfully"); // Return a success message
     } catch (err) {
-        if (err.message.includes("UNIQUE constraint failed")) {
-            res.status(409).send(err.message); // Return 409 if there's a conflict (e.g., device already exists)
+        if (String(err).includes("UNIQUE constraint failed")) {
+            return res.status(409).json({ error: err?.message }); // Return 409 if there's a conflict (e.g., device already exists)
         } else {
-            console.error("Error adding device:", err); // Log any errors
-            res.status(500).send("Internal Server Error"); // Return 500 if an error occurs
+            await logError("Error adding device", err);
+            return res.status(500).json({ error: "Internal Server Error" }); // Return 500 if an error occurs
         }
+    }
+
+    res.status(201).json({ message: "Device added successfully" }); // Return a success message
+
+    try {
+        await saveLog("Add Device", req.headers['original-ip'] || req.socket.remoteAddress, ip, name);
+        await ForwardToServer2(req);
+    } catch (err) {
+        await logError("Error logging/syncing action", err);
     }
 });
 
@@ -97,16 +103,25 @@ router.post('/add', async (req, res) => {
 * @returns {express.Response} res - HTTP response.
 */
 router.delete('/delete', async (req, res) => {
+    const { ip } = req.body; // Extract the IP address of the device to be deleted from the request body 
+    if (ip === undefined) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missing
+    if (!isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
+    var row; 
     try {
-        const { ip } = req.body; // Extract the IP address of the device to be deleted from the request body
-        const row = await getDeviceIP(ip);
+        row = await getDeviceIP(ip); // Get device info before deleting (for logging)
+        if (!row) return res.status(404).json({ error: "Device not found" });
         await deleteDevice(ip); // Call the function to delete the device from the database
+        res.status(200).json({ message: "Device deleted successfully" }); // Return a success message upon deletion
+    } catch (err) {
+        await logError("Error deleting device", err)
+        res.status(500).json({ error: "Internal Server Error" }); // Return 500 status if an error occurs
+    }
+
+    try {
         await saveLog("Delete Device", req.headers['original-ip'] || req.socket.remoteAddress, ip, row.name);
-        ForwardToServer2(req).catch(console.error);
-        res.status(200).send("Device deleted successfully"); // Return a success message upon deletion
-    } catch (error) {
-        console.error("Error deleting device:", error); // Log any errors
-        res.status(500).send("Internal Server Error"); // Return 500 status if an error occurs
+        await ForwardToServer2(req);
+    } catch (err) {
+        await logError("Error logging/syncing action", err);
     }
 });
 
@@ -116,19 +131,30 @@ router.delete('/delete', async (req, res) => {
 */
 router.put('/edit', async (req, res) => {
     const { id, ip, name } = req.body; // Extract data to edit the device
+    if ([id, ip, name].includes(undefined)) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missing
+    if (!isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
+    if (name.trim() === "") return res.status(400).json({ error: "Name cannot be empty" }); // Return 400 if required fields are missing
+    var row;
     try {
-        const row = await getDeviceID(id);
+        row = await getDeviceID(id); // Get device info before editing (for logging)
+        if (!row) return res.status(404).json({ error: "Device not found" });
         await editDevice(id, ip, name); // Call the function to update the device in the database
-        await saveLog("Edit Device", req.headers['original-ip'] || req.socket.remoteAddress, row.ip, row.name, ip, name);
-        res.status(200).send(`Edited Successfully!`); // Return success message if the update is successful
-        ForwardToServer2(req).catch(console.error);
     } catch (err) {
-        if (err.message.includes("UNIQUE constraint failed")) {
-            res.status(409).send(err.message); // Return 409 if there's a conflict (e.g., device already exists)
+        if (String(err).includes("UNIQUE constraint failed")) {
+            return res.status(409).json({ error: err?.message }); // Return 409 if there's a conflict (e.g., device already exists)
         } else {
-            console.error("Error editing device:", err); // Log any errors
-            res.status(500).send("Internal Server Error"); // Return 500 if an error occurs
+            await logError("Error editing device", err);
+            return res.status(500).json({ error: "Internal Server Error" }); // Return 500 if an error occurs
         }
+    }
+
+    res.status(200).json({ message: "Edited Successfully!" }); // Return success message if the update is successful
+
+    try {
+        await saveLog("Edit Device", req.headers['original-ip'] || req.socket.remoteAddress, row.ip, row.name, ip, name);
+        await ForwardToServer2(req);
+    } catch (err) {
+        await logError("Error logging/syncing action", err);
     }
 });
 
@@ -137,7 +163,6 @@ router.put('/edit', async (req, res) => {
 * @returns {express.Response} res - HTTP response (active clients array as JSON).
 */
 router.get('/clients', async (req, res) => {
-    //await saveLog("Get Clients", req.headers['original-ip'] || req.socket.remoteAddress);
     res.status(200).json(Array.from(activeClients.entries())); // Return the set of active client IPs as an array
 });
 
@@ -147,18 +172,30 @@ router.get('/clients', async (req, res) => {
 */
 router.post('/whitelist', async (req, res) => {
     const { isWhitelisted, clientIp, name } = req.body; // Extract whitelisting status and IP address from the request body
+    if ([isWhitelisted, clientIp, name].includes(undefined)) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missing
+    if (!isValidIPv4(clientIp)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
+    if (name.trim() === "") return res.status(400).json({ error: "Name cannot be empty" }); // Return 400 if required fields are missing
+
+    const state = isWhitelisted ? "Unwhitelist" : "Whitelist";
+
     try {
         await toggleWhitelist(isWhitelisted, clientIp, name); // Toggle the whitelist status of the client IP
         if (!isWhitelisted) {activeClients.delete(clientIp);}
-        await saveLog(`${isWhitelisted ? "Unwhitelist" : "Whitelist"}`, req.headers['original-ip'] || req.socket.remoteAddress, clientIp, name);
-        res.status(200).send(`${isWhitelisted ? "Unwhitelisted" : "Whitelisted"} Successfully!`); // Return a success response if the whitelist action is completed
-        ForwardToServer2(req).catch(console.error);
-    } catch (err){
-        if (err.includes("UNIQUE constraint failed")){res.status(409).send(err);} 
+    } catch (err) {
+        if (String(err).includes("UNIQUE constraint failed")){return res.status(409).json({ error: err });} 
         else {
-            console.error(`Error whitelisting ip: ${clientIp}`); // Log any errors if whitelisting fails
-            res.status(500).send("Internal Server Error"); // Return 500 status if an error occurs
+            await logError(`Error ${state}ing user`, err);
+            return res.status(500).json({ error: "Internal Server Error" }); // Return 500 status if an error occurs   
         }
+    }
+
+    res.status(200).json({ message: `${state}ed Successfully!` }); // Return a success response if the whitelist action is completed
+
+    try {
+        await saveLog(`${state}`, req.headers['original-ip'] || req.socket.remoteAddress, clientIp, name);
+        await ForwardToServer2(req);
+    } catch (err){
+        await logError("Error logging/syncing action", err);
     }
 });
 
@@ -177,6 +214,7 @@ router.get('/getIP', (req, res) => {
 */
 router.post('/isHost', (req, res) => {
     const { userIP } = req.body;
+    if (!isValidIPv4(userIP)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
     res.json([process.env.HOST, process.env.OTHER_HOST].includes(userIP));
 });
 
@@ -187,10 +225,9 @@ router.post('/isHost', (req, res) => {
 router.get('/getWhitelistAll', async (req, res) => {
     try {
         const whitelist = await getWhitelistAll(); // Fetch all whitelisted users from the database
-        //await saveLog("Get Whitelist", req.headers['original-ip'] || req.socket.remoteAddress);
         res.status(200).json(whitelist); // Return the whitelisted users as JSON response
     } catch (error) {
-        console.error("Error fetching whitelisted users:", error); // Log any errors
+        await logError("Error fetching whitelist", err);
         res.status(500).json({ error: "Internal Server Error" }); // Return a 500 status if an error occurs
     }
 });
@@ -212,7 +249,7 @@ router.get('/getLogs', async (req, res) => {
         res.status(200).json(logs);
     } catch (error) {
         // Log and return server error if query fails
-        console.error("Error fetching logs:", error);
+        await logError("Error fetching devices", err);
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
@@ -223,12 +260,9 @@ router.get('/getLogs', async (req, res) => {
 */
 router.post('/sync', async (req, res) => {
     // Allow only trusted hosts + check sync secret
-    if (
-        ![process.env.HOST, process.env.OTHER_HOST].includes(req.socket.remoteAddress) || 
-        req.headers['x-sync-key'] !== process.env.SYNC_SECRET
-    ) {
-        return res.status(403).send('Forbidden');
-    }
+    if (![process.env.HOST, process.env.OTHER_HOST].includes(req.socket.remoteAddress) || 
+        req.headers['x-sync-key'] !== process.env.SYNC_SECRET)
+            return res.status(403).json({ error: 'Forbidden' });
 
     // Compare incoming timestamp with local logs
     const IncomingTime = Number(req.headers['time']) || 0;
@@ -246,12 +280,17 @@ router.post('/sync', async (req, res) => {
             res.status(202).send(dbBuffer);
 
         } catch (err) {
-            console.error("Failed to forward request to other server:", err);
+            await logError("Error forwarding sync request to other server", err);
             res.status(500).send("Failed to forward request to other server");
         }
     } else {
         // Incoming DB is newer → overwrite local DB
-        await overwriteDatabase(req, res);
+        try {
+            await overwriteDatabase(req, res);
+        } catch (err) {
+            await logError("error overwriting database", err);
+        }
+        
         res.status(200).send("Synced successfully!");
     }
 });

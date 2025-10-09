@@ -1,7 +1,13 @@
 // Function to validate if an input is a valid IPv4 address
 // It uses a regex pattern to check if the input matches a valid IPv4 address format
-function isValidIp(ip) {
-  return /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/.test(ip);
+function isValidIPv4(ip) {
+  const validFormat = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/.test(ip);
+  if (!validFormat) return false;
+
+  // Reject 0.0.0.0 and 255.255.255.255
+  if (ip === "0.0.0.0" || ip === "255.255.255.255") return false;
+
+  return true;
 }
 
 // Function to display an error message in the UI (by default, in the "invalid-input" element)
@@ -46,21 +52,23 @@ function showBlocked() {
     document.querySelectorAll("h1").forEach(h1 => {if (h1.id !== "title")h1.textContent = "";})
 }
 
-let successTimeout;
-function showSuccessMessage(message) {
-  const msg = document.getElementById("success-message");
+let timeout;
+function showMessage(message, isError = false) {
+  const msg = document.getElementById("message");
+
+  msg.className = isError ? "closed" : "success";
 
   msg.style.visibility = "visible";
   msg.textContent = message;
 
   // Clear the previous timeout, if any
-  if (successTimeout) {
-    clearTimeout(successTimeout);
+  if (timeout) {
+    clearTimeout(timeout);
   }
 
   // Set a new timeout to hide the message after 5 seconds
-  successTimeout = setTimeout(() => {
+  timeout = setTimeout(() => {
     msg.style.visibility = "hidden";
-    successTimeout = null; // optional: clear the reference
+    timeout = null; // optional: clear the reference
   }, 5000);
 }

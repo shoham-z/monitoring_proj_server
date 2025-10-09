@@ -73,7 +73,7 @@ function filterTable() {
 }
 
 // Function to submit a form (add, edit, or delete device data)
-async function submitForm(request, method, body, successMessage) {
+async function submitForm(request, method, body, message) {
   try {
     const res = await fetch(`${url}/api/${request}`, {
       method,
@@ -81,20 +81,23 @@ async function submitForm(request, method, body, successMessage) {
       body: JSON.stringify(body)
     });
 
-    await res.text();
+    const data = await res.json();
 
-    // Handle unwhitelisted ip
-    if (res.status === 403){return showBlocked();}
-
-    // Show error if IP and name are not unique
-    if (res.status === 409) {return errorText('IP and name must be unique');}
+    switch (res.status){
+      case 403: return showBlocked(); // Handle unwhitelisted ip
+      case 409: return errorText('IP and name must be unique'); // Show error if IP and name are not unique
+      case 500: {
+        console.error(`Error during ${method} to ${request}:`, data.error);
+        // Show error if form submission fails
+        return errorText(`Error submitting the form.\n Please try again.`);
+      }
+    }
 
     // If no error in the response, show success message and reload device data
-    showSuccessMessage(successMessage);
+    showMessage(message);
     loadDeviceData();
     toggleMenu("Menu", true);
   } catch (err) {
-    console.log(err)
     console.error(`Error during ${method} to ${request}:`, err);
     // Show error if form submission fails
     errorText(`Error submitting the form.\n Please try again.`);
@@ -111,7 +114,7 @@ function edit(e) {
   const id = document.getElementById("menuId").value;
   // Check if at least one field is filled and if the IP is valid
   if (!ip && (!name || name.trim() === "")) return errorText("Please fill out at least one field\n (IP Address or Name).");
-  if (!isValidIp(ip) && ip.trim() !== "") return errorText("Please enter a valid IP address");
+  if (!isValidIPv4(ip) && ip.trim() !== "") return errorText("Please enter a valid IP address");
   submitForm("edit", "PUT", { id, ip, name }, "Edited Successfully!");
 }
 
@@ -122,7 +125,7 @@ function add(e) {
   const name = document.getElementById("Name").value;
   // Check if both fields are filled and if the IP is valid
   if (!ip || !name) return errorText("Please fill out all fields.");
-  if (!isValidIp(ip)) return errorText("Please enter a valid IP address");
+  if (!isValidIPv4(ip)) return errorText("Please enter a valid IP address");
   submitForm("add", "POST", { ip, name }, "Added Successfully!");
 }
 

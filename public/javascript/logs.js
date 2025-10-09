@@ -103,11 +103,11 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 
-var timeout;
+var filterTimeout;
 
 function filterLogs() {
-  clearTimeout(timeout); // reset timer each keystroke
-  timeout = setTimeout(() => {
+  clearTimeout(filterTimeout); // reset timer each keystroke
+  filterTimeout = setTimeout(() => {
     const search = document.getElementById("search-bar").value.toLowerCase();
 
     // reset state for new search
