@@ -227,7 +227,7 @@ router.get('/getWhitelistAll', async (req, res) => {
     try {
         const whitelist = await getWhitelistAll(); // Fetch all whitelisted users from the database
         res.status(200).json(whitelist); // Return the whitelisted users as JSON response
-    } catch (error) {
+    } catch (err) {
         await logError("Error fetching whitelist", err);
         res.status(500).json({ error: "Internal Server Error" }); // Return a 500 status if an error occurs
     }
@@ -248,7 +248,7 @@ router.get('/getLogs', async (req, res) => {
 
         // Send logs back as JSON
         res.status(200).json(logs);
-    } catch (error) {
+    } catch (err) {
         // Log and return server error if query fails
         await logError("Error fetching devices", err);
         res.status(500).json({ error: "Internal Server Error" });
