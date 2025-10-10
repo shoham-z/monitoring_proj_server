@@ -1,7 +1,9 @@
 // Get the current origin (protocol + domain + port) of the page
 const url = window.location.origin;
 
-// Function to load all devices data from the server
+/**
+ * Function to load all devices data into the table
+ */
 async function loadDeviceData() {
   try {
     const res = await fetch(`${url}/api/getAll`);
@@ -50,7 +52,9 @@ async function loadDeviceData() {
   }
 }
 
-// Function to filter the table based on the search input
+/**
+ * Function to filter the table based on the search input
+ */
 function filterTable() {
   const input = document.getElementById("search-bar").value.toLowerCase();
   const rows = document.querySelectorAll("#table-body tr");
@@ -72,7 +76,13 @@ function filterTable() {
   });
 }
 
-// Function to submit a form (add, edit, or delete device data)
+/**
+ * Submits a form request to the server for adding, editing, or deleting a device.
+ * @param {string} request - The API endpoint name (e.g., "add", "edit", "delete").
+ * @param {string} method - The HTTP method to use (e.g., "POST", "PUT", "DELETE").
+ * @param {Object} body - The request payload to send to the server.
+ * @param {string} message - The success message to display after completion.
+ */
 async function submitForm(request, method, body, message) {
   try {
     const res = await fetch(`${url}/api/${request}`, {
@@ -104,7 +114,10 @@ async function submitForm(request, method, body, message) {
   }
 }
 
-// Function to handle editing a device
+/**
+ * Handles form submission for editing an existing device.
+ * @param {Event} e - The form submit event.
+ */
 function edit(e) {
   e.preventDefault();
   const ipEl = document.getElementById("IP Address");
@@ -118,7 +131,10 @@ function edit(e) {
   submitForm("edit", "PUT", { id, ip, name }, "Edited Successfully!");
 }
 
-// Function to handle adding a device
+/**
+ * Handles form submission for adding a new device.
+ * @param {Event} e - The form submit event.
+ */
 function add(e) {
   e.preventDefault();
   const ip = document.getElementById("IP Address").value;
@@ -129,7 +145,11 @@ function add(e) {
   submitForm("add", "POST", { ip, name }, "Added Successfully!");
 }
 
-// Function to handle deleting a device
+/**
+ * Handles device deletion confirmation and triggers delete API call.
+ * @param {string} ip - The IP address of the device to delete.
+ * @param {string} name - The name of the device to delete.
+ */
 function deleteRow(ip, name) {
   document.getElementById("deleteH1").textContent = `Name: ${name} \n IP: ${ip}`;
   toggleMenu("deleteMenu");
@@ -140,7 +160,13 @@ function deleteRow(ip, name) {
   };
 }
 
-// Function to set up the menu for editing or adding a device
+/**
+ * Configures and displays the menu for editing or adding a device.
+ * @param {string} menuType - The type of menu ("edit" or "add").
+ * @param {string} [ip] - The IP address to display as a placeholder (for editing).
+ * @param {string} [name] - The device name to display as a placeholder (for editing).
+ * @param {string} [id] - The ID of the device being edited.
+ */
 function setMenu(menuType, ip, name, id) {
   const ipEl = document.getElementById("IP Address");
   const nameEl = document.getElementById("Name");
@@ -154,7 +180,11 @@ function setMenu(menuType, ip, name, id) {
   toggleMenu("Menu");
 }
 
-// Function to toggle between menu visibility
+/**
+ * Toggles the visibility of a given menu element.
+ * @param {string} id - The ID of the menu element to toggle ("Menu" or "deleteMenu").
+ * @param {boolean} [close=false] - Whether to force-close the menu.
+ */
 function toggleMenu(id, close = false) {
   const menu = document.getElementById(id);
   const other = document.getElementById(id === "Menu" ? "deleteMenu" : "Menu");
@@ -170,6 +200,10 @@ function toggleMenu(id, close = false) {
   }
 }
 
+/**
+ * Initializes the page once the DOM has fully loaded.
+ * Loads device data, sets up periodic refresh, and makes menus draggable.
+ */
 document.addEventListener("DOMContentLoaded", function () {
   loadDeviceData();
   setInterval(() => {loadDeviceData();}, 5000);

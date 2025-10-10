@@ -1,14 +1,20 @@
 const url = window.location.origin;
-// -- init --
-let currentPageDown = 1; // newest logs going down
-let currentPageUp = 1;   // page number used when loading up
-let loading = false;
-let allLoadedDown = false;
-// start false — we haven't proven there's nothing above yet
-let allLoadedUp = true;
-const maxRows = 200;
 
-// -- loadLogs (only relevant parts shown, replace your function with this) --
+let currentPageDown = 1; // page number used when loading down
+let currentPageUp = 1;   // page number used when loading up
+let loading = false; // true if currently loading logs
+let allLoadedDown = false;  // true if finished loading all the way down
+let allLoadedUp = true; // true if finished loading all the way up
+const maxRows = 200; // maximum rows at once (must be devideable by 100)
+
+/**
+ * Function to load all logs data from the server
+ * @param {number} page - The current page number to load.
+ * @param {"beforeend"|"afterbegin"} direction - The direction to insert rows:
+ *  - `"beforeend"` loads new logs at the bottom.
+ *  - `"afterbegin"` loads older logs at the top.
+ * @param {string} [search] - Optional search query to filter logs by.
+ */
 async function loadLogs(page, direction, search) {
   loading = true;
 
@@ -64,7 +70,7 @@ async function loadLogs(page, direction, search) {
 
 
 
-    trimOverflowRows(direction);
+    deleteOverflow(direction);
 
   } catch (err) {
     console.error(err);
@@ -73,7 +79,14 @@ async function loadLogs(page, direction, search) {
   }
 }
 
-function trimOverflowRows(direction) {
+/**
+ * Removes extra table rows if the total exceeds the maximum allowed (`maxRows`).
+ * Keeps the most recent rows visible and trims from the opposite end.
+ * @param {"beforeend"|"afterbegin"} direction - The direction rows will be deleted:
+ *  - `"beforeend"` removes rows from the top.
+ *  - `"afterbegin"` removes rows from the bottom.
+ */
+function deleteOverflow(direction) {
   const tbody = document.querySelector("tbody");
 
   while (tbody.rows.length > maxRows) {
@@ -87,6 +100,11 @@ function trimOverflowRows(direction) {
   }
 }
 
+/**
+ * Initialize log table behavior:
+ * - Loads the first page of logs on DOM load.
+ * - Handles infinite scrolling (loads more logs when reaching top or bottom).
+ */
 document.addEventListener("DOMContentLoaded", function () {
   loadLogs(1, "beforeend", document.getElementById("search-bar").value.toLowerCase());
 
@@ -105,6 +123,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
 var filterTimeout;
 
+/**
+ * Filters the log entries based on the search input value.
+ * Waits 1 second after the last keystroke before performing the filter,
+ * to avoid excessive reloads while typing.
+ *
+ * Resets pagination and state variables, clears the current table,
+ * and loads the first page of logs matching the search term.
+ */
 function filterLogs() {
   clearTimeout(filterTimeout); // reset timer each keystroke
   filterTimeout = setTimeout(() => {
@@ -124,6 +150,15 @@ function filterLogs() {
   }, 1000); // 1 second
 }
 
+/**
+ * Converts a timestamp in milliseconds to a formatted date-time string
+ * in the Asia/Jerusalem time zone, with a line break between date and time.
+ *
+ * Example output: "09/10/2025<br>16:30:45"
+ *
+ * @param {number} ms - The timestamp in milliseconds.
+ * @returns {string} The formatted date-time string with a line break.
+ */
 function msToString(ms) {
   const dateString = new Date(ms).toLocaleString('en-GB', {
     timeZone: 'Asia/Jerusalem',

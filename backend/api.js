@@ -1,7 +1,7 @@
 // Import necessary modules and functions
 const express = require('express'); // Express framework for server handling
 const router = express.Router(); // Router for API routes
-// Import specific functions from 'server_functions.js' for handling device data, user authentication, etc.
+// Import functions from 'server_functions.js'
 const { addDevice, editDevice, deleteDevice, getDeviceIP, getDeviceID, getDeviceAll, toggleWhitelist, getWhitelistAll, saveLog, getLogs, ForwardToServer2, overwriteDatabase, logError, isValidIPv4 } = require('./server_functions'); 
 const path = require('path'); // Path module to manage file paths
 const fs = require('fs'); // File system module (read/write files)
@@ -55,7 +55,7 @@ router.get('/get', async (req, res) => {
     try {
         const { ip } = req.query;
         if (ip === undefined) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missing
-        if (!isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
+        if (ip && !isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
         const deviceData = await getDeviceIP(ip); // Fetch a single device based on the provided IP address
         if (!deviceData) {
             return res.status(404).json({ error: "Device not found" }); // Return 404 if no device is found for the given IP
@@ -74,7 +74,7 @@ router.get('/get', async (req, res) => {
 router.post('/add', async (req, res) => {
     const { ip, name } = req.body;
     if ([ip, name].includes(undefined)) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missin}
-    if (!isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
+    if (ip && !isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
     if (name.trim() === "") return res.status(400).json({ error: "Name cannot be empty" }); // Return 400 if required fields are missing
 
     try {
@@ -105,7 +105,7 @@ router.post('/add', async (req, res) => {
 router.delete('/delete', async (req, res) => {
     const { ip } = req.body; // Extract the IP address of the device to be deleted from the request body 
     if (ip === undefined) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missing
-    if (!isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
+    if (ip && !isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
     var row; 
     try {
         row = await getDeviceIP(ip); // Get device info before deleting (for logging)
@@ -132,7 +132,8 @@ router.delete('/delete', async (req, res) => {
 router.put('/edit', async (req, res) => {
     const { id, ip, name } = req.body; // Extract data to edit the device
     if ([id, ip, name].includes(undefined)) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missing
-    if (!isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
+    console.log(ip)
+    if (ip && !isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
     if (name.trim() === "") return res.status(400).json({ error: "Name cannot be empty" }); // Return 400 if required fields are missing
     var row;
     try {
@@ -173,7 +174,7 @@ router.get('/clients', async (req, res) => {
 router.post('/whitelist', async (req, res) => {
     const { isWhitelisted, clientIp, name } = req.body; // Extract whitelisting status and IP address from the request body
     if ([isWhitelisted, clientIp, name].includes(undefined)) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missing
-    if (!isValidIPv4(clientIp)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
+    if (clientIp && !isValidIPv4(clientIp)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
     if (name.trim() === "") return res.status(400).json({ error: "Name cannot be empty" }); // Return 400 if required fields are missing
 
     const state = isWhitelisted ? "Unwhitelist" : "Whitelist";
@@ -214,7 +215,7 @@ router.get('/getIP', (req, res) => {
 */
 router.post('/isHost', (req, res) => {
     const { userIP } = req.body;
-    if (!isValidIPv4(userIP)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
+    if (userIP && !isValidIPv4(userIP)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
     res.json([process.env.HOST, process.env.OTHER_HOST].includes(userIP));
 });
 

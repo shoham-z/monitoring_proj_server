@@ -59,31 +59,29 @@ db.exec(`
 async function addDevice(ip, name) {
   return new Promise((resolve, reject) => {
     db.run(`INSERT INTO devices (ip, name) VALUES (?, ?)`, [ip, name], function (err) {
-      if (err) reject(err); // Handle errors
-      else resolve(); // Successfully updated device
+      err ? reject(err) : resolve()
     });
   });
 }
 
 /**
  * Delete device by IP
- * @param {String} ip - IP address of the device to be deleted
+ * @param {string} ip - IP address of the device to be deleted
  * @returns {Promise<void>} Resolves on success, rejects with error on failure
  */
 async function deleteDevice(ip) {
   return new Promise((resolve, reject) => {
     db.run(`DELETE FROM devices WHERE ip = ?`, [ip], function (err) {
-      if (err) reject(err); // Error during deletion
-      else resolve(); // Successfully deleted device
+      err ? reject(err) : resolve()
     });
   });
 }
 
 /**
  * Edit device by IP
- * @param {String} id - ID of the device (Primary Key)
- * @param {String} ip - IP address of the device to be edited
- * @param {String} name Name of the device to be edited
+ * @param {string} id - ID of the device (Primary Key)
+ * @param {string} ip - IP address of the device to be edited
+ * @param {string} name Name of the device to be edited
  * @returns {Promise<void>} Resolves on success, rejects with error on failure
  */
 async function editDevice(id, ip, name) {
@@ -112,36 +110,33 @@ async function editDevice(id, ip, name) {
 
     // Run the query
     db.run(query, values, function (err) {
-      if (err) reject(err);
-      else resolve();
+      err ? reject(err) : resolve()
     });
   });
 }
 
 /**
  * Get device by IP
- * @param {String} ip - IP address of the device
+ * @param {string} ip - IP address of the device
  * @returns {Promise<Object|undefined>} Resolves with the device row (or undefined if not found)
  */
 async function getDeviceIP(ip) {
   return new Promise((resolve, reject) => {
     db.get(`SELECT * FROM devices WHERE ip = ?`, [ip], (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
+      err ? reject(err) : resolve(row)
     });
   });
 }
 
 /**
  * Get device by ID
- * @param {String} id - ID of the device
+ * @param {string} id - ID of the device
  * @returns {Promise<Object|undefined>} Resolves with the device row (or undefined if not found)
  */
 async function getDeviceID(id) {
   return new Promise((resolve, reject) => {
     db.get(`SELECT * FROM devices WHERE id = ?`, [id], (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
+      err ? reject(err) : resolve(row)
     });
   });
 }
@@ -153,50 +148,40 @@ async function getDeviceID(id) {
 async function getDeviceAll() {
   return new Promise((resolve, reject) => {
     db.all(`SELECT * FROM devices`, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
+      err ? reject(err) : resolve(rows)
     });
   });
 }
 
 /**
  * Check if IP is whitelisted
- * @param {String} ip - IP address of the client 
- * @returns {Promise<Boolean>} Resolves with true if the client is whitelisted, false otherwise
+ * @param {string} ip - IP address of the client 
+ * @returns {Promise<boolean>} Resolves with true if the client is whitelisted, false otherwise
  */
 async function isWhitelisted(ip) {
   return new Promise((resolve, reject) => {
     db.get(`SELECT * FROM whitelist WHERE ip = ?`, [ip], (err, row) => {
-      if (err) reject(err);
-      else resolve(Boolean(row));
+      err ? reject(err) : resolve(Boolean(row))
     });
   });
 }
 
 /**
  * Add or remove a client from the "whitelist" table
- * @param {Boolean} isWhitelist - Current whitelist status of the client (true if already whitelisted)
- * @param {String} clientIp - The IP address of the client
- * @param {String} name - The name of the client
+ * @param {boolean} isWhitelist - Current whitelist status of the client (true if already whitelisted)
+ * @param {string} clientIp - The IP address of the client
+ * @param {string} name - The name of the client
  * @returns {Promise<void>} Resolves on success, rejects with error on failure
  */
 async function toggleWhitelist(isWhitelist, clientIp, name) {
-  return new Promise((resolve, reject) => {
-    if (isWhitelist) {
-      // If currently whitelisted, remove the client from the whitelist
-      db.run(`DELETE FROM whitelist WHERE ip = ?`, [clientIp], function (err) {
-        if (err) reject(err); // Reject promise if deletion fails
-        else resolve(); // Successfully removed from whitelist
-      });
-    } else {
-      // If not whitelisted, add the client to the whitelist
-      db.run(`INSERT INTO whitelist (ip, name) VALUES (?, ?)`, [clientIp, name], function (err) {
-        if (err) {
-          reject(err);
-        } else resolve(); // Successfully added to whitelist
-      });
-    }
-  });
+  const query = isWhitelist
+    ? `DELETE FROM whitelist WHERE ip = ?`
+    : `INSERT INTO whitelist (ip, name) VALUES (?, ?)`;
+  const params = isWhitelist ? [clientIp] : [clientIp, name];
+
+  return new Promise((resolve, reject) =>
+    db.run(query, params, err => (err ? reject(err) : resolve()))
+  );
 }
 
 /**
@@ -206,18 +191,17 @@ async function toggleWhitelist(isWhitelist, clientIp, name) {
 async function getWhitelistAll() {
   return new Promise((resolve, reject) => {
     db.all(`SELECT * FROM whitelist`, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
+      err ? reject(err) : resolve(rows);
     });
   });
 }
 
 /**
  * Save a new log entry
- * @param {String} type - The type of action or event
- * @param {String} clientIP - The IP address of the client who performed the action
- * @param {String} ip - The IP address affected by the action
- * @param {String} name - The name associated with the affected IP
+ * @param {string} type - The type of action or event
+ * @param {string} clientIP - The IP address of the client who performed the action
+ * @param {string} ip - The IP address affected by the action
+ * @param {string} name - The name associated with the affected IP
  * @param {String|null} newIP - The new IP after the action (if applicable)
  * @param {String|null} newName - The new name after the action (if applicable)
  * @returns {Promise<void>} Resolves on success, rejects with error on failure
@@ -227,8 +211,7 @@ async function saveLog(type, clientIP, ip, name, newIP, newName){
   db.run(`INSERT INTO logs (type, time, clientIP, ip, name, newIP, newName) VALUES (?, ?, ?, ?, ?, ?, ?)`,
   [type, Date.now(), clientIP, ip, name, newIP, newName],
     function (err) {
-      if (err) reject(err);
-      else resolve();
+      err ? reject(err) : resolve()
     });
   });
 }
@@ -285,8 +268,7 @@ async function getLogs(page = 1, search = "") {
 
     // Execute the query and return the results
     db.all(query, params, (err, rows) => {
-      if (err) reject(err);  // Reject promise if an error occurs
-      else resolve(rows);    // Resolve with the retrieved rows
+      err ? reject(err) : resolve(rows)
     });
   });
 }
@@ -418,8 +400,8 @@ async function logError(context, error) {
 
 /**
  * Function to validate if an input is a valid IPv4 address
- * @param {String} ip 
- * @returns {Boolean} true if given a valid IPv4 address
+ * @param {string} ip An IPv4 address
+ * @returns {boolean} True if given a valid IPv4 address
  */
 function isValidIPv4(ip) {
   const validFormat = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/.test(ip);

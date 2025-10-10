@@ -3,7 +3,9 @@ const url = window.location.origin;
 // Variable to store the user's IP
 let userIP = "";
 
-// Immediately Invoked Function Expression (IIFE) to fetch user IP address
+/**
+ * Makes an API call to `/api/getIP` and assigns the result to `userIP`.
+ */
 (async () => {
   try {
     // Make an API call to get the user's IP address
@@ -18,6 +20,11 @@ let userIP = "";
   }
 })();
 
+/**
+ * Checks if the given IP address belongs to the host system.
+ * @param {string} ip - The IP address to verify.
+ * @returns {boolean} - True if given the IP address of a host
+ */
 async function isHost(ip){
     try {
     // Make an API call to get the host's IP address
@@ -36,7 +43,9 @@ async function isHost(ip){
   }
 }
 
-// Function to fetch and display client data
+/**
+ * Fetches and displays the list of connected clients and whitelisted IPs.
+ */
 async function fetchClients() {
   try {
     const res = await fetch(`${url}/api/clients`);
@@ -122,6 +131,12 @@ async function fetchClients() {
   }
 }
 
+/**
+ * Opens a confirmation menu to remove an IP from the whitelist.
+ * Prevents the user from removing their own IP or the host's IP.
+ * @param {string} clientIp - The IP address to remove.
+ * @param {string} name - The name associated with the IP.
+ */
 async function removeWhitelistMenu(clientIp, name) {
   if (clientIp === userIP) {
     alert("You can't remove yourself.");
@@ -178,6 +193,10 @@ async function removeWhitelistMenu(clientIp, name) {
   };
 }
 
+/**
+ * Opens a menu for adding a new IP to the whitelist.
+ * Validates inputs and submits to the backend API.
+ */
 function addWhitelistMenu(){
   const menu = document.getElementById("addWhitelistMenu");
   if (menu.style.display !== "" && menu.style.display === "block"){
@@ -236,6 +255,10 @@ function addWhitelistMenu(){
   };
 }
 
+/**
+ * Initializes the page when the DOM is fully loaded.
+ * Loads clients, sets up refresh intervals, and enables draggable menus.
+ */
 document.addEventListener("DOMContentLoaded", function () {
     // Load client data
     fetchClients();
