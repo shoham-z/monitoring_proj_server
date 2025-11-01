@@ -122,8 +122,8 @@ function edit(e) {
   e.preventDefault();
   const ipEl = document.getElementById("IP Address");
   const nameEl = document.getElementById("Name");
-  const ip = ipEl.value;
-  const name = nameEl.value;
+  const ip = ipEl.value || ipE1.placeholder;
+  const name = nameEl.value || nameEl.placeholder;
   const id = document.getElementById("menuId").value;
   // Check if at least one field is filled and if the IP is valid
   if (!ip && (!name || name.trim() === "")) return errorText("Please fill out at least one field\n (IP Address or Name).");
