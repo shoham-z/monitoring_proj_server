@@ -132,7 +132,6 @@ router.delete('/delete', async (req, res) => {
 router.put('/edit', async (req, res) => {
     const { id, ip, name } = req.body; // Extract data to edit the device
     if ([id, ip, name].includes(undefined)) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missing
-    console.log(ip)
     if (ip && !isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
     if (name.trim() === "") return res.status(400).json({ error: "Name cannot be empty" }); // Return 400 if required fields are missing
     var row;
