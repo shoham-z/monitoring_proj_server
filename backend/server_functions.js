@@ -1,16 +1,16 @@
 const path = require('path'); // Path module to manage file paths
 const sqlite = require('sqlite3').verbose(); // SQLite3 module for interacting with SQLite databases (verbose mode for detailed errors)
-const fs = require('fs'); // File system module (read/write files)
+const fs = require('fs/promises'); // File system module (read/write files)
+const cron = require('node-cron'); //Scheduales weekly backups 
 
-let dbPath, errorFolder;
 const { app } = require('electron'); // Import Electron's app module to check app environment
 const isDev = !app.isPackaged; // Determine if the app is in development mode (not packaged)
 
 // Set database path depending on environment
-dbPath = isDev
+const dbPath = isDev
   ? path.join(__dirname, '../resources', 'database.db') // In dev: database is in ../resources relative to current file
   : path.join(process.resourcesPath, 'database.db');    // In production: database is in the app's resources folder
-errorFolder = isDev
+const errorFolder = isDev
   ? path.join(__dirname, '../resources', 'error_logs') // In dev: database is in ../resources relative to current file
   : path.join(process.resourcesPath, 'error_logs');    // In production: database is in the app's resources folder
 
@@ -314,9 +314,9 @@ async function ForwardToServer2(req) {
  * @returns {Promise<void>} Resolves when the database has been successfully overwritten, rejects on error or if the client aborts
  */
 async function overwriteDatabase(req, res) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     // Create a writable stream to save the incoming database file
-    const writeStream = fs.createWriteStream(dbPath);
+    const writeStream = await fs.createWriteStream(dbPath);
 
     // Pipe the request data directly into the file
     req.pipe(writeStream);
@@ -358,9 +358,7 @@ async function logError(context, error) {
 
   try {
     // Ensure directory exists
-    if (!fs.existsSync(errorFolder)) {
-      fs.mkdirSync(errorFolder, { recursive: true });
-    }
+    await fs.mkdir(errorFolder, { recursive: true, mode: 0o777 }); 
 
     // Unique log filename per error (timestamp + random suffix)
     const now = new Date().toLocaleString("en-IL", {
@@ -412,6 +410,51 @@ function isValidIPv4(ip) {
 
   return true;
 }
+
+async function backupDatabase() {
+  console.log('⏰ Starting weekly database backup at 6:00 AM local time...');
+
+  const uniqueBackupFilename = `db_${new Date().toLocaleString('en-GB', { 
+      hour12: false, 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit', 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit', 
+      timeZone: 'Asia/Jerusalem' 
+  }).replace(/\//g, '-').replace(/, /g, '_').replace(/:/g, '-')}.db`;
+
+  const backupDir = isDev
+  ? path.join(__dirname, '../resources', 'backups') // In dev: database is in ../resources relative to current file
+  : path.join(process.resourcesPath, 'backups');    // In production: database is in the app's resources folder
+  const destinationPath = path.join(backupDir, uniqueBackupFilename);
+    
+  // Ensure the 'backups' directory exists
+try {
+    // 1. Ensure the 'backups' directory exists (using async fs.mkdir)
+    //    The recursive: true and mode: 0777 are standard, no need to check 'existsSync' first
+    await fs.mkdir(backupDir, { recursive: true, mode: 0o777 }); 
+
+    // 2. Safely copy the file using the Promise-based API
+    await fs.copyFile(dbPath, destinationPath); // 👈 Await the copy operation
+    
+    console.log(`✅ Database was backed up successfully`);
+    
+  } catch (error) {
+    console.error('❌ Database backup failed:', error.message);
+    // You can re-throw the error to notify the caller (node-cron) if necessary
+    throw error; 
+  }
+}
+
+cron.schedule('0 6 * * 0', () => {
+  backupDatabase();
+}, {
+  scheduled: true,
+  // Ensure this matches the timezone where you want the 6:00 AM to occur
+  timezone: "Asia/Jerusalem" 
+});
 
 module.exports = {
   addDevice,
