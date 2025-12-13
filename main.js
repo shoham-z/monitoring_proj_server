@@ -2,6 +2,7 @@ const { app, BrowserWindow, Tray, Menu, dialog } = require('electron');  // Elec
 const path = require('path');  // Path module to manage file paths
 const { shell } = require('electron');  // Electron module to open files/URLs with the system default apps
 const net = require('net'); // Node.js module for TCP/IPC networking (used to check if a port is in use)
+const { isValidIPv4 } = require('./backend/server_functions'); // Import functions
 
 // Check if the app is in development mode or production
 const isDev = !app.isPackaged;  // If the app is not packaged, it is in development mode
@@ -180,8 +181,19 @@ async function isPortInUse(port) {
 
 // When the app is ready, start the server, create the tray, and show activation message
 app.whenReady().then(async () => {
-  if (!["HTTP","HTTPS"].includes(process.env.PROTOCOL)) {
-  showErrorAndExit(`Invalid PROTOCOL '${process.env.PROTOCOL}'. Please set it to 'HTTP' or 'HTTPS' in the .env file.`);
+  if (!["HTTP","HTTPS"].includes(process.env.PROTOCOL.toUpperCase())) {
+    showErrorAndExit(`Invalid PROTOCOL [${process.env.PROTOCOL}]. Please set it to [HTTP] or [HTTPS] in the .env file.`);
+  }
+
+  const HOST = process.env.HOST;
+  const OTHER_HOST = process.env.OTHER_HOST;
+
+  if (HOST.toLowerCase().includes("localhost") || !isValidIPv4(HOST)){
+    showErrorAndExit(`Invalid HOST [${HOST}]. Please use a valid IPv4 address.`);
+  }
+
+    if (OTHER_HOST.toLowerCase().includes("localhost") || !isValidIPv4(OTHER_HOST)){
+    showErrorAndExit(`Invalid OTHER_HOST [${OTHER_HOST}]. Please use a valid IPv4 address.`);
   }
 
   if (await isPortInUse(process.env.PORT)){
