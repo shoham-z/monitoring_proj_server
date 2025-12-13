@@ -93,7 +93,7 @@ This project reads configuration from a `.env` file (in development it is loaded
 	- Notes: When `HTTPS` the server expects TLS files under `resources/certificates/` and will start an HTTPS listener.
 
 - **`HOST`**: IP or hostname used by the Electron UI and treated as a trusted host for whitelist checks.
-	- Example (local dev): `HOST=127.0.0.1` or `HOST=192.168.100.200`
+	- Example (local dev): `HOST=192.168.100.200` or `HOST=192.168.100.201`
 	- Example (LAN): `HOST=192.168.100.200`
 	- Notes: `main.js` uses this to build the app URL (`PROTOCOL://HOST:PORT`) and `app.js` allows requests matching this value.
 
@@ -115,7 +115,7 @@ Sample `.env` (replace values for your environment):
 
 ```dotenv
 PROTOCOL=HTTP
-HOST=127.0.0.1
+HOST=192.168.100.200
 PORT=3001
 OTHER_HOST=192.168.100.201
 SYNC_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
