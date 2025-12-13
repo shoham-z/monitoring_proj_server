@@ -1,6 +1,6 @@
 node_modules
-.env
 dist
 error_logs
 resources/database.db
 resources/backups
+sync_status.log

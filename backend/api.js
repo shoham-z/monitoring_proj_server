@@ -2,7 +2,7 @@
 const express = require('express'); // Express framework for server handling
 const router = express.Router(); // Router for API routes
 // Import functions from 'server_functions.js'
-const { addDevice, editDevice, deleteDevice, getDeviceIP, getDeviceID, getDeviceAll, toggleWhitelist, getWhitelistAll, saveLog, getLogs, ForwardToServer2, overwriteDatabase, logError, isValidIPv4 } = require('./server_functions'); 
+const { addDevice, editDevice, deleteDevice, getDeviceIP, getDeviceID, getDeviceAll, toggleWhitelist, getWhitelistAll, saveLog, getLogs, ForwardToServer2, overwriteDatabase, logError, isValidIPv4, logSyncStatus } = require('./server_functions'); 
 const path = require('path'); // Path module to manage file paths
 const fs = require('fs'); // File system module (read/write files)
 
@@ -281,14 +281,17 @@ router.post('/sync', async (req, res) => {
 
         } catch (err) {
             await logError("Error forwarding sync request to other server", err);
+            await logSyncStatus(`Failed to forward sync request:\n    ${err.stack || err.toString()}`);
             res.status(500).send("Failed to forward request to other server");
         }
     } else {
         // Incoming DB is newer → overwrite local DB
         try {
             await overwriteDatabase(req, res);
+            await logSyncStatus("Synced database on startup successfully");
         } catch (err) {
             await logError("error overwriting database", err);
+            await logSyncStatus(`Failed to sync database:\n    ${err.stack || err.toString()}`);
         }
         
         res.status(200).send("Synced successfully!");

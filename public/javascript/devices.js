@@ -25,12 +25,12 @@ async function loadDeviceData() {
         <td>${row.ip}</td>
         <td>${row.name}</td>
         <td style="white-space: nowrap;">
-          <button id="edit ${row.ip}" class="green-btn" 
-            onclick="setMenu('edit', '${row.ip}', '${row.name}', ${row.id})">
+          <button id="edit ${row.ip}" class="green-btn"
+            onclick='setMenu("edit", ${JSON.stringify(row.ip)}, ${JSON.stringify(row.name)}, ${row.id})'>
             Edit
           </button>
           <button id="add ${row.ip}" class="red-btn" 
-            onclick="deleteRow('${row.ip}', '${row.name}')">
+            onclick='deleteRow(${JSON.stringify(row.ip)}, ${JSON.stringify(row.name)})'>
             Delete
           </button>
         </td>
@@ -122,7 +122,7 @@ function edit(e) {
   e.preventDefault();
   const ipEl = document.getElementById("IP Address");
   const nameEl = document.getElementById("Name");
-  const ip = ipEl.value || ipE1.placeholder;
+  const ip = ipEl.value || ipEl.placeholder;
   const name = nameEl.value || nameEl.placeholder;
   const id = document.getElementById("menuId").value;
   // Check if at least one field is filled and if the IP is valid

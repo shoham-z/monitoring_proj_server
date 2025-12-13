@@ -3,7 +3,7 @@ const express = require('express'); // Express framework for server handling
 const path = require('path'); // Path module to manage file paths
 const cors = require('cors'); // CORS (Cross-Origin Resource Sharing) middleware for enabling cross-origin requests
 const logger = require('morgan'); // HTTP request logger middleware (For debugging)
-const { isWhitelisted, getLogs } = require('./backend/server_functions'); // Import functions
+const { isWhitelisted, getLogs, logSyncStatus } = require('./backend/server_functions'); // Import functions
 const fs = require('fs'); // File system module (read/write files)
 const { app: electronApp } = require('electron'); // Electron app lifecycle control
 const https = require("https"); // add this at the top with other imports
@@ -140,8 +140,9 @@ async function syncDatabase() {
       fs.writeFileSync(dbPath, buffer); // Overwrite local DB
       console.log("✅ Database successfully synced from other server.");
     }
+    await logSyncStatus("Success", "start");
   } catch (err) {
-    console.error("❌ Failed to sync at startup:", err.message); // Log sync failure
+    await logSyncStatus(err.stack || err.toString(), "start");
   }
 }
 

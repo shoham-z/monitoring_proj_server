@@ -13,12 +13,17 @@ const dbPath = isDev
 const errorFolder = isDev
   ? path.join(__dirname, '../resources', 'error_logs') // In dev: database is in ../resources relative to current file
   : path.join(process.resourcesPath, 'error_logs');    // In production: database is in the app's resources folder
+const syncStatusPath = isDev
+  ? path.join(__dirname, '../resources', 'sync_status.log') // In dev: database is in ../resources relative to current file
+  : path.join(process.resourcesPath, 'sync_status.log');    // In production: database is in the app's resources folder
 
 // Open the SQLite database
 let db = new sqlite.Database(dbPath, (err) => {
   if (err) console.error("Error Occurred: ", err); // Log error if database cannot be opened
   else console.log("DataBase Connected"); // Log success message when database is connected
 });
+
+(async () => {await fs.appendFile(syncStatusPath, "", "utf8");})()
 
 db.exec(`
   -- Create "devices" table if it doesn't exist
@@ -290,8 +295,9 @@ async function ForwardToServer2(req) {
     !req.headers['forwarded'] &&
     [process.env.HOST, process.env.OTHER_HOST].includes(req.socket.remoteAddress)
   ) {
-    // Forward the request to the other server
-    await fetch(`${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}/api${req.path}`, {
+    try {
+      // Forward the request to the other server
+      await fetch(`${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}/api${req.path}`, {
       method: req.method, // Use the same HTTP method as the original request
       headers: {
         'Content-Type': 'application/json',
@@ -299,7 +305,11 @@ async function ForwardToServer2(req) {
         'original-ip': req.socket.remoteAddress // Pass the original client's IP
       },
       body: JSON.stringify(req.body)   // Forward the request body as JSON
-    });
+      });
+      await logSyncStatus(`Success`, req.path, JSON.stringify(req.body));
+    } catch (err) {
+      await logSyncStatus(err.stack || err.toString(), req.path, JSON.stringify(req.body));
+    }
   }
 }
 
@@ -330,14 +340,14 @@ async function overwriteDatabase(req, res) {
     });
 
     // Handle successful completion of writing the file
-    writeStream.on('finish', () => {
+    writeStream.on('finish', async () => {
       console.log("Database saved to:", dbPath);
-      res.status(200).send('Database file received successfully.'); // Respond to client
+      res.status(200).send('Database file received successfully.'); // Response
       resolve(); // Resolve the promise
     });
 
     // Handle errors during file writing
-    writeStream.on('error', err => {
+    writeStream.on('error', async err => {
       console.error("Error saving DB:", err);
       res.status(500).send('Failed to save database.'); // Respond with error
       reject(err); // Reject the promise
@@ -389,12 +399,80 @@ async function logError(context, error) {
 
     const message = `[${now}] [${context}] ${fullError}\n`;
 
-    await fs.promises.writeFile(logFile, message, "utf8");
+    await fs.writeFile(logFile, message, "utf8");
   } catch (err) {
     // If logging itself fails, output to console
     console.error("Failed to log error:", err);
   }
 }
+
+/**
+ * Append a timestamped sync status message to a log file.
+ * 
+ * Format: [DD-MM-YYYY HH:MM:SS] message
+ *
+ * @param {string} err - Error to log
+ * @param {string} action - Action synced
+ * @param {string} body - The body of the attempted request
+ */
+async function logSyncStatus(err, action, body) {
+  try {
+
+    const now = new Date();
+
+    const israel = new Date(
+      now.toLocaleString("en-US", { timeZone: "Asia/Jerusalem" })
+    );
+
+    const years = String(israel.getFullYear()).padStart(4, "0");
+    const months = String(israel.getMonth() + 1).padStart(2, "0");
+    const days = String(israel.getDate()).padStart(2, "0");
+    const hours = String(israel.getHours()).padStart(2, "0");
+    const minutes = String(israel.getMinutes()).padStart(2, "0");
+    const seconds = String(israel.getSeconds()).padStart(2, "0");
+
+    let message;
+    let state = err === "Success" ? "Successfully synced" : "Failed to sync";
+
+    if (action === "start") {
+      message = `${state} at startup:`;
+    } else {
+      message = `${state} ${action} action:\n   Body: ${body}`;
+    }
+
+    if (JSON.stringify(err)?.includes("fetch failed")) {
+      message += "\n   Reason: Couldn't reach other server";
+    } else {
+      message += `\n   Reason: ${err.stack || err.toString()}`;
+    }
+
+    const logLine = `[${days}-${months}-${years} ${hours}:${minutes}:${seconds}] ${message}`;
+
+    let cleaned = "";
+    let prefix = "";
+    try {
+      const existing = await fs.readFile(syncStatusPath, "utf8");
+
+      const lines = existing.split("\n").filter(line => line.trim().length > 0); // remove empty lines
+      cleaned = lines.join("\n");
+
+      // Add a newline at the start if the last line in the file is not empty
+      if (lines.length > 0) {
+        prefix = "\n";
+      }
+
+    } catch (err) {
+      // file doesn't exist → cleaned stays ""
+    }
+
+    // --- Write cleaned log + new line ---
+    await fs.writeFile(syncStatusPath, cleaned + prefix + logLine, "utf8");
+
+  } catch (err) {
+    await logError("Failed to write sync log:", err);
+  }
+}
+
 
 /**
  * Function to validate if an input is a valid IPv4 address
@@ -471,5 +549,6 @@ module.exports = {
   ForwardToServer2,
   overwriteDatabase,
   logError,
-  isValidIPv4
+  isValidIPv4,
+  logSyncStatus
 };

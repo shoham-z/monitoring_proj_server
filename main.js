@@ -7,20 +7,25 @@ const net = require('net'); // Node.js module for TCP/IPC networking (used to ch
 const isDev = !app.isPackaged;  // If the app is not packaged, it is in development mode
 const appRoot = isDev ? __dirname : path.join(process.resourcesPath);  // Set the app root path based on the environment
 
-// Load environment variables from .env file
-if (isDev){require('dotenv').config({ quiet: true });}  // Use local .env in development
-else {require('dotenv').config({ path: path.join(process.resourcesPath, '.env'), quiet: true });}  // Use packaged .env in production
-
 // Set the appropriate icon and db path based on whether the app is in development or production
 let iconPath;
 let dbPath;
+let syncStatusPath;
+let envPath;
 if (!isDev){
   iconPath = path.join(appRoot, 'apple.ico');  // Production icon path
   dbPath = path.join(appRoot, "database.db");  // Production database path
+  syncStatusPath = path.join(appRoot, "sync_status.log");
+  envPath = path.join(appRoot, ".env");
 } else {
   iconPath = path.join(appRoot, 'public/assets/apple.ico'); // Development icon path
   dbPath = path.join(appRoot, "resources/database.db");  // Development database path
+  syncStatusPath = path.join(appRoot, "resources/sync_status.log");  // Development database path
+  envPath = path.join(appRoot, ".env");
 }
+
+// Load environment variables from .env file
+require('dotenv').config({path: envPath, quiet: true });
 
 let tray;  // Tray object to handle the app's tray icon
 let mainWindow;  // Main application window
@@ -121,10 +126,27 @@ async function createMenu() {
         { role: 'reload' },  // Reload the window
         { role: 'toggledevtools' },  // Open/close dev tools
         { role: "togglefullscreen" },  // Toggle fullscreen mode
+      ]
+    },
+    {
+      label: 'Tools',
+      submenu: [
+        {
+          label: 'Open Server Configuration',
+          click: async () => {
+            await shell.openPath(envPath);  // Open the SQLite database file
+          }
+        },
         {
           label: 'Open Database',
           click: async () => {
             await shell.openPath(dbPath);  // Open the SQLite database file
+          }
+        },
+        {
+          label: 'Show Sync Status',
+          click: async () => {
+            await shell.openPath(syncStatusPath);  // Open the SQLite database file
           }
         }
       ]
