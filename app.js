@@ -140,9 +140,9 @@ async function syncDatabase() {
       fs.writeFileSync(dbPath, buffer); // Overwrite local DB
       console.log("✅ Database successfully synced from other server.");
     }
-    await logSyncStatus("Success", "start");
+    await logSyncStatus("Success", "start", null,  `${process.env.OTHER_HOST}:${process.env.PORT}`);
   } catch (err) {
-    await logSyncStatus(err.stack || err.toString(), "start");
+    await logSyncStatus(err.stack || err.toString(), "start", null, `${process.env.OTHER_HOST}:${process.env.PORT}`);
   }
 }
 

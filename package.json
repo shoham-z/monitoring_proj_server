@@ -39,7 +39,7 @@
         "to": "DB.Browser.for.SQLite-v3.13.1-win64"
       },
       {
-        "from": ".env",
+        "from": ".env.example",
         "to": ".env"
       },
       {

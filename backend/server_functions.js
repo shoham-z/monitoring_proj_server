@@ -306,9 +306,9 @@ async function ForwardToServer2(req) {
       },
       body: JSON.stringify(req.body)   // Forward the request body as JSON
       });
-      await logSyncStatus(`Success`, req.path, JSON.stringify(req.body));
+      await logSyncStatus(`Success`, req.path, JSON.stringify(req.body), `${process.env.OTHER_HOST}:${process.env.PORT}`);
     } catch (err) {
-      await logSyncStatus(err.stack || err.toString(), req.path, JSON.stringify(req.body));
+      await logSyncStatus(err.stack || err.toString(), req.path, JSON.stringify(req.body), `${process.env.OTHER_HOST}:${process.env.PORT}`);
     }
   }
 }
@@ -414,8 +414,9 @@ async function logError(context, error) {
  * @param {string} err - Error to log
  * @param {string} action - Action synced
  * @param {string} body - The body of the attempted request
+ * @param {string} ip - The IPv4 address of the other server
  */
-async function logSyncStatus(err, action, body) {
+async function logSyncStatus(err, action, body, ip) {
   try {
 
     const now = new Date();
@@ -439,6 +440,8 @@ async function logSyncStatus(err, action, body) {
     } else {
       message = `${state} ${action} action:\n   Body: ${body}`;
     }
+
+    message += `\n   Other server IP address: ${ip}`
 
     if (JSON.stringify(err)?.includes("fetch failed")) {
       message += "\n   Reason: Couldn't reach other server";
