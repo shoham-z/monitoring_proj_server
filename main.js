@@ -181,7 +181,7 @@ async function isPortInUse(port) {
 
 // When the app is ready, start the server, create the tray, and show activation message
 app.whenReady().then(async () => {
-  if (!["HTTP","HTTPS"].includes(process.env.PROTOCOL.toUpperCase())) {
+  if (!["http","https"].includes(process.env.PROTOCOL.toLowerCase())) {
     showErrorAndExit(`Invalid PROTOCOL [${process.env.PROTOCOL}]. Please set it to [HTTP] or [HTTPS] in the .env file.`);
   }
 

@@ -306,9 +306,9 @@ async function ForwardToServer2(req) {
       },
       body: JSON.stringify(req.body)   // Forward the request body as JSON
       });
-      await logSyncStatus(`Success`, req.path, JSON.stringify(req.body), `${process.env.OTHER_HOST}:${process.env.PORT}`);
+      await logSyncStatus(`Success`, req.path, JSON.stringify(req.body), `${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}`);
     } catch (err) {
-      await logSyncStatus(err.stack || err.toString(), req.path, JSON.stringify(req.body), `${process.env.OTHER_HOST}:${process.env.PORT}`);
+      await logSyncStatus(err.stack || err.toString(), req.path, JSON.stringify(req.body), `${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}`);
     }
   }
 }

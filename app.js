@@ -87,8 +87,8 @@ app.get('/logs', async (req, res) => {
 app.use(express.static(path.join(__dirname, 'public'), { index: 'devices.html' }));
 
 (async () => {
-switch (process.env.PROTOCOL.toUpperCase()){
-  case "HTTPS": {
+switch (process.env.PROTOCOL.toLowerCase()){
+  case "https": {
     //Load SSL certificate + key
     const options = {
       key: fs.readFileSync(path.join(basePath, "resources", "certificates", "server.key")),
@@ -102,7 +102,7 @@ switch (process.env.PROTOCOL.toUpperCase()){
     });
     break;
   }
-  case "HTTP": {
+  case "http": {
     // Start the server using HTTP and listen on a specific port, accessible from all IP addresses (0.0.0.0)
     app.listen(process.env.PORT, '0.0.0.0', async () => {
       console.log("✅ HTTP server is listening");
@@ -140,9 +140,9 @@ async function syncDatabase() {
       fs.writeFileSync(dbPath, buffer); // Overwrite local DB
       console.log("✅ Database successfully synced from other server.");
     }
-    await logSyncStatus("Success", "start", null,  `${process.env.OTHER_HOST}:${process.env.PORT}`);
+    await logSyncStatus("Success", "start", null,  `${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}`);
   } catch (err) {
-    await logSyncStatus(err.stack || err.toString(), "start", null, `${process.env.OTHER_HOST}:${process.env.PORT}`);
+    await logSyncStatus(err.stack || err.toString(), "start", null, `${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}`);
   }
 }
 
