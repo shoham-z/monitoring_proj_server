@@ -25,11 +25,11 @@ async function loadDeviceData() {
         <td>${row.ip}</td>
         <td>${row.name}</td>
         <td style="white-space: nowrap;">
-          <button id="edit ${row.ip}" class="green-btn"
+          <button class="green-btn"
             onclick='setMenu("edit", ${JSON.stringify(row.ip)}, ${JSON.stringify(row.name)}, ${row.id})'>
             Edit
           </button>
-          <button id="add ${row.ip}" class="red-btn" 
+          <button class="red-btn" 
             onclick='deleteRow(${JSON.stringify(row.ip)}, ${JSON.stringify(row.name)})'>
             Delete
           </button>
