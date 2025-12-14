@@ -43,12 +43,12 @@
         "to": ".env"
       },
       {
-        "from": "resources/ceretificates/server.cert",
-        "to": "ceretificates/server.cert"
+        "from": "resources/certificates/server.cert",
+        "to": "certificates/server.cert"
       },
       {
-        "from": "resources/ceretificates/server.key",
-        "to": "ceretificates/server.key"
+        "from": "resources/certificates/server.key",
+        "to": "certificates/server.key"
       }
     ],
     "win": {
