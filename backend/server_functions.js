@@ -583,7 +583,6 @@ cron.schedule('0 6 * * 0', () => {
   backupDatabase();
 }, {
   scheduled: true,
-  // Ensure this matches the timezone where you want the 6:00 AM to occur
   timezone: "Asia/Jerusalem" 
 });
 
