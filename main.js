@@ -179,26 +179,8 @@ async function createMenu() {
       ]
     },
     {
-      label: 'Import',
-      submenu: [
-        {
-          label: 'Whitelist',
-          click: async () => await importTable('whitelist')
-        },
-        {
-          label: 'Devices',
-          click: async () => await importTable('devices')
-        },
-        {
-          label: 'Logs',
-          click: async () => await importTable('logs')
-        },
-        { type: 'separator' },
-        {
-          label: 'All (ZIP)',
-          click: async () => await importTable('all')
-        }
-      ]
+      label: 'Import Devices',
+      click: async () => await importTable('devices')
     }
   ];
 
@@ -321,41 +303,16 @@ async function exportTable(tableName) {
 async function importTable(tableName) {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     title: `Import ${tableName}`,
-    filters: tableName === 'all'
-      ? [{ name: 'ZIP Archive', extensions: ['zip'] }]
-      : [{ name: 'JSON', extensions: ['json'] }],
+    filters: [{ name: 'JSON', extensions: ['json'] }],
     properties: ['openFile']
   });
 
   if (canceled || !filePaths.length) return;
 
   const filePath = filePaths[0];
-
-  if (tableName === 'all') {
-    const tempDir = path.join(__dirname, 'tmp_import');
-    fs.mkdirSync(tempDir, { recursive: true });
-
-    await fs.createReadStream(filePath)
-      .pipe(unzipper.Extract({ path: tempDir }))
-      .promise();
-
-    const tables = ['whitelist', 'devices', 'logs'];
-    for (const tbl of tables) {
-      const jsonPath = path.join(tempDir, `${tbl}.json`);
-      if (fs.existsSync(jsonPath)) {
-        const raw = fs.readFileSync(jsonPath, 'utf8');
-        const data = JSON.parse(raw);
-        await insertTable(tbl, data);  // Direct call, no HTTP needed
-      }
-    }
-
-    fs.rmSync(tempDir, { recursive: true, force: true });
-
-  } else {
-    const raw = fs.readFileSync(filePath, 'utf8');
-    const data = JSON.parse(raw);
-    await insertTable(tableName, data);
-  }
+  const raw = fs.readFileSync(filePath, 'utf8');
+  const data = JSON.parse(raw);
+  await insertTable(tableName, data);
 
   console.log(`Imported data for ${tableName} successfully.`);
 }
