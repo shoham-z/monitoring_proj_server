@@ -2,7 +2,7 @@ const { app, BrowserWindow, Tray, Menu, dialog } = require('electron');  // Elec
 const path = require('path');  // Path module to manage file paths
 const { shell } = require('electron');  // Electron module to open files/URLs with the system default apps
 const net = require('net'); // Node.js module for TCP/IPC networking (used to check if a port is in use)
-const { isValidIPv4 } = require('./backend/server_functions'); // Import functions
+const { isValidIPv4, logError } = require('./backend/server_functions'); // Import functions
 const { getDeviceAll, getLogs, getWhitelistAll, insertTable} = require('./backend/server_functions.js');
 const fs = require('fs');
 const archiver = require('archiver');
@@ -312,7 +312,12 @@ async function importTable(tableName) {
   const filePath = filePaths[0];
   const raw = fs.readFileSync(filePath, 'utf8');
   const data = JSON.parse(raw);
-  await insertTable(tableName, data);
+  try {
+    await insertTable(tableName, data);
+  } catch (err) {
+    await logError("Error insert table action", err);
+  }
+  
 
   console.log(`Imported data for ${tableName} successfully.`);
 }

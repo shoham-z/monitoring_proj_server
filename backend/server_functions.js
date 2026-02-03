@@ -1,7 +1,7 @@
 const path = require('path'); // Path module to manage file paths
 const sqlite = require('sqlite3').verbose(); // SQLite3 module for interacting with SQLite databases (verbose mode for detailed errors)
 const fs = require('fs/promises'); // File system module (read/write files)
-const cron = require('node-cron'); //Scheduales weekly backups 
+const { CronJob } = require('cron'); //Scheduales weekly backups 
 
 const { app } = require('electron'); // Import Electron's app module to check app environment
 const isDev = !app.isPackaged; // Determine if the app is in development mode (not packaged)
@@ -522,10 +522,8 @@ try {
     
     console.log(`✅ Database was backed up successfully`);
     
-  } catch (error) {
-    console.error('❌ Database backup failed:', error.message);
-    // You can re-throw the error to notify the caller (node-cron) if necessary
-    throw error; 
+  } catch (err) {
+    await logError("Error backup action", err);
   }
 }
 
@@ -579,12 +577,17 @@ async function insertTable(tableName, rows) {
   });
 }
 
-cron.schedule('0 6 * * 0', () => {
-  backupDatabase();
-}, {
-  scheduled: true,
-  timezone: "Asia/Jerusalem" 
-});
+const job = new CronJob(
+  '0 6 * * 0',               // Sunday 06:00
+  async () => {
+    await backupDatabase();
+  },
+  null,
+  true,
+  'Asia/Jerusalem'
+);
+
+job.start();
 
 module.exports = {
   addDevice,
