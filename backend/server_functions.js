@@ -496,7 +496,9 @@ function isValidIPv4(ip) {
 async function backupDatabase() {
   console.log('⏰ Starting daily database backup at 8:00 AM local time...');
 
-  const uniqueBackupFilename = `db_${new Date().toLocaleString('en-GB', { 
+  const now = new Date();
+
+  const uniqueBackupFilename = `db_${now.toLocaleString('en-GB', { 
       hour12: false, 
       year: 'numeric', 
       month: '2-digit', 
@@ -509,13 +511,20 @@ async function backupDatabase() {
   const backupDir = isDev
   ? path.join(__dirname, '../resources', 'backups') // In dev: database is in ../resources relative to current file
   : path.join(process.resourcesPath, 'backups');    // In production: database is in the app's resources folder
-  const destinationPath = path.join(backupDir, uniqueBackupFilename);
+
+  const year = now.getFullYear().toString();
+  const month = now.toLocaleString('en-GB', { month: 'long', timeZone: 'Asia/Jerusalem' });
+
     
   // Ensure the 'backups' directory exists
 try {
     // 1. Ensure the 'backups' directory exists (using async fs.mkdir)
     //    The recursive: true and mode: 0777 are standard, no need to check 'existsSync' first
-    await fs.mkdir(backupDir, { recursive: true, mode: 0o777 }); 
+    await fs.mkdir(backupDir, { recursive: true, mode: 0o777 });
+    await fs.mkdir(path.join(backupDir, year), { recursive: true, mode: 0o777 });
+    await fs.mkdir(path.join(backupDir, year, month), { recursive: true, mode: 0o777 });
+
+    const destinationPath = path.join(path.join(backupDir, year, month), uniqueBackupFilename);
 
     const betterDB = new Database(dbPath); // live DB used by sqlite3
     await betterDB.backup(destinationPath, {
