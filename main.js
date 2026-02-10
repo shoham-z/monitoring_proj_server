@@ -188,10 +188,14 @@ async function createMenu() {
   Menu.setApplicationMenu(menu);  // Apply as application menu
 }
 
-function showErrorAndExit(message) {
-  console.error(message); // Log for debugging if console is visible
-  dialog.showErrorBox("Server Startup Error", message); // Show GUI error to user
-  process.exit(1); // Stop the app
+async function showErrorAndExit(message) {
+  console.error(message);
+  await logError("Server Startup Error", message);
+
+  dialog.showErrorBox("Server Startup Error", message);
+
+  app.quit();      // graceful Electron shutdown
+  process.exit(1); // hard stop fallback
 }
 
 async function isPortInUse(port) {
@@ -211,23 +215,27 @@ async function isPortInUse(port) {
 
 // When the app is ready, start the server, create the tray, and show activation message
 app.whenReady().then(async () => {
-  if (!["http","https"].includes(process.env.PROTOCOL.toLowerCase())) {
-    showErrorAndExit(`Invalid PROTOCOL [${process.env.PROTOCOL}]. Please set it to [HTTP] or [HTTPS] in the .env file.`);
+
+  const { PROTOCOL, HOST, OTHER_HOST, PORT } = process.env;
+
+  if (!PROTOCOL || !["http","https"].includes(PROTOCOL.toLowerCase())) {
+    await showErrorAndExit(`Invalid PROTOCOL [${PROTOCOL}]. Please set it to [HTTP] or [HTTPS] in the .env file.`);
+    return;
   }
 
-  const HOST = process.env.HOST;
-  const OTHER_HOST = process.env.OTHER_HOST;
-
-  if (HOST.toLowerCase().includes("localhost") || !isValidIPv4(HOST)){
-    showErrorAndExit(`Invalid HOST [${HOST}]. Please use a valid IPv4 address.`);
+  if (!HOST || HOST.toLowerCase().includes("localhost") || !isValidIPv4(HOST)){
+    await showErrorAndExit(`Invalid HOST [${HOST}]. Please use a valid IPv4 address.`);
+    return;
   }
 
-    if (OTHER_HOST.toLowerCase().includes("localhost") || !isValidIPv4(OTHER_HOST)){
-    showErrorAndExit(`Invalid OTHER_HOST [${OTHER_HOST}]. Please use a valid IPv4 address.`);
+    if (!OTHER_HOST || OTHER_HOST.toLowerCase().includes("localhost") || !isValidIPv4(OTHER_HOST)){
+    await showErrorAndExit(`Invalid OTHER_HOST [${OTHER_HOST}]. Please use a valid IPv4 address.`);
+    return;
   }
 
-  if (await isPortInUse(process.env.PORT)){
-    showErrorAndExit(`Port ${process.env.PORT} is already in use. Please close the other app.`);
+  if (!PORT || (await isPortInUse(PORT))){
+    await showErrorAndExit(`Port ${PORT} is already in use. Please close the other app.`);
+    return;
   }
   
   app.commandLine.appendSwitch('ignore-certificate-errors'); // Ignore SSL errors (self-signed certificates)
@@ -249,6 +257,16 @@ app.whenReady().then(async () => {
 // Prevent app from quitting when all windows are closed
 app.on('window-all-closed', (event) => {
   event.preventDefault();
+});
+
+process.on('uncaughtException', async (err) => {
+  await logError("Fatal error", err);
+  await showErrorAndExit(`Fatal error:\n${err.stack || err}`);
+});
+
+process.on('unhandledRejection', async (err) => {
+  await logError("Unhandled promise", err);
+  await showErrorAndExit(`Unhandled promise:\n${err}`);
 });
 
 async function exportTable(tableName) {

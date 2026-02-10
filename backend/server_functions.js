@@ -2,6 +2,7 @@ const path = require('path'); // Path module to manage file paths
 const sqlite = require('sqlite3').verbose(); // SQLite3 module for interacting with SQLite databases (verbose mode for detailed errors)
 const fs = require('fs/promises'); // File system module (read/write files)
 const { CronJob } = require('cron'); //Scheduales weekly backups 
+const Database = require('better-sqlite3');
 
 const { app } = require('electron'); // Import Electron's app module to check app environment
 const isDev = !app.isPackaged; // Determine if the app is in development mode (not packaged)
@@ -493,7 +494,7 @@ function isValidIPv4(ip) {
 }
 
 async function backupDatabase() {
-  console.log('⏰ Starting weekly database backup at 6:00 AM local time...');
+  console.log('⏰ Starting daily database backup at 8:00 AM local time...');
 
   const uniqueBackupFilename = `db_${new Date().toLocaleString('en-GB', { 
       hour12: false, 
@@ -516,8 +517,13 @@ try {
     //    The recursive: true and mode: 0777 are standard, no need to check 'existsSync' first
     await fs.mkdir(backupDir, { recursive: true, mode: 0o777 }); 
 
-    // 2. Safely copy the file using the Promise-based API
-    await fs.copyFile(dbPath, destinationPath); // 👈 Await the copy operation
+    const betterDB = new Database(dbPath); // live DB used by sqlite3
+    await betterDB.backup(destinationPath, {
+      progress({ totalPages, remainingPages }) {
+        console.log(`Backup progress: ${totalPages - remainingPages}/${totalPages}`);
+      }
+    });
+    betterDB.close();
     
     console.log(`✅ Database was backed up successfully`);
     
@@ -577,7 +583,7 @@ async function insertTable(tableName, rows) {
 }
 
 const job = new CronJob(
-  '0 6 * * 0',               // Sunday 06:00
+  '0 8 * * *',               // Daily 08:00 AM
   async () => {
     await backupDatabase();
   },
