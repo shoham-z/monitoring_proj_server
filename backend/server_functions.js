@@ -402,8 +402,8 @@ async function insertTable(tableName, rows) {
       case 'whitelist':
         columns = ['ip', 'name'];
         break;
-      case 'switches':
-        columns = ['ip', 'name'];
+      case 'devices':
+        columns = ['ip', 'name', 'id'];
         break;
       case 'logs':
         columns = ['type', 'time', 'clientIP', 'ip', 'name', 'newIP', 'newName'];
