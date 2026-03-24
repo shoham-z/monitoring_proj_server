@@ -462,8 +462,6 @@ module.exports = {
   getWhitelistAll,
   saveLog,
   getLogs,
-  ForwardToServer2,
-  overwriteDatabase,
   logError,
   isValidIPv4,
   insertTable
