@@ -1,8 +1,8 @@
 # Monitoring Project
 
-A Node.js + Express + Electron based monitoring application with a backend server, local database, and optional multi-server sync support.
+A Node.js + Express + Electron based monitoring application with a backend server and local database.
 
-The app allows managing devices, logging actions, and monitoring sync status between servers.
+The app allows managing devices and logging actions.
 
 ---
 
@@ -12,8 +12,6 @@ The app allows managing devices, logging actions, and monitoring sync status bet
 - Local SQLite database
 - Web-based UI served by Express
 - Backend API with Express with server-side logging
-- Optional server-to-server sync
-- Sync status logging with timestamps (Israel timezone)
 - Admin tools to open database and logs directly from the app
 - Desktop wrapper using Electron
 
@@ -39,7 +37,7 @@ The app allows managing devices, logging actions, and monitoring sync status bet
 
  - `backend/`
 	 - `api.js`                  : Express API routes
-	 - `server_functions.js`     : Database, sync and helper logic
+	 - `server_functions.js`     : Database helper logic
 
  - `public/`                    : Static web UI served by Express
 	 - `blocked.html`            : Shown when access is denied
@@ -63,9 +61,9 @@ The app allows managing devices, logging actions, and monitoring sync status bet
  - `DB.Browser.for.SQLite-v3.13.1-win64/` : Bundled SQLite browser (optional)
 
 **Key Files**
-- `app.js` : Hosts the Express server, sets up middleware, routes (`/api`) and static site. Handles IP whitelist checks and optional server-to-server DB sync.
+- `app.js` : Hosts the Express server, sets up middleware, routes (`/api`) and static site. Handles IP whitelist checks.
 - `main.js`: Electron launcher. Loads `.env`, validates `PROTOCOL`/`PORT`, ensures port is free, starts `app.js`, and creates the tray/menu.
-- `backend/api.js` / `backend/server_functions.js`: API endpoints and core server-side logic (DB access, logging, whitelist checks, sync helpers).
+- `backend/api.js` / `backend/server_functions.js`: API endpoints and core server-side logic (DB access, logging, whitelist checks).
 - `public/`: The front-end pages and JS used by the Electron window or a browser.
 
 **Run (development)**
@@ -99,17 +97,7 @@ This project reads configuration from a `.env` file (in development it is loaded
 
 - **`PORT`**: TCP port the Express server listens on.
 	- Example: `PORT=3001`
-	- Notes: Choose an unused port. The Electron wrapper and sync requests use this port.
-
-- **`OTHER_HOST`**: Peer server IP/hostname used for database sync.
-	- Example: `OTHER_HOST=192.168.100.201`
-	- Notes: `app.js` will POST `/api/sync` to `OTHER_HOST:PORT` when syncing databases.
-
-- **`SYNC_SECRET`**: Shared symmetric secret used to authenticate sync requests (sent in header `x-sync-key`).
-	- Value: A long, random hex string (recommended 32 bytes / 64 hex chars or longer).
-	- Example: `SYNC_SECRET=125061a5d6f8...` (replace with your own generated secret)
-	- Security: Keep this secret, don't commit it to source control.
-    - Notes: The secret must be the same in both server.
+	- Notes: Choose an unused port. The Electron wrapper uses this port.
 
 Sample `.env` (replace values for your environment):
 
@@ -117,24 +105,26 @@ Sample `.env` (replace values for your environment):
 PROTOCOL=HTTP
 HOST=192.168.100.200
 PORT=3001
-OTHER_HOST=192.168.100.201
-SYNC_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-```
-
-Commands to generate a strong `SYNC_SECRET`:
-
-PowerShell (Node):
-```powershell
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-PowerShell (OpenSSL if installed):
-```powershell
-openssl rand -hex 32
 ```
 
 **Security & packaging notes**
 - If you use `HTTPS`, ensure `resources/certificates/server.key` and `server.cert` exist and match what's configured in `app.js`.
+
+**Creating an HTTPS Certificate**
+
+To enable HTTPS, you need a server certificate and private key. For development or testing, you can create a self-signed certificate using OpenSSL (install OpenSSL if not already available).
+
+1. Open a terminal or command prompt.
+2. Run the following command to generate a self-signed certificate valid for 365 days:
+
+```bash
+openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.cert -days 365 -nodes
+```
+
+3. When prompted, enter details like country, organization, etc. (you can leave most fields blank for self-signed).
+4. Place the generated `server.key` and `server.cert` files in the `resources/certificates/` directory.
+
+Note: Self-signed certificates will cause browser warnings; for production, obtain a certificate from a trusted CA.
 
 **Notes & Tips**
 - The default served page is `public/devices.html` (routes in `app.js`).
