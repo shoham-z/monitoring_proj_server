@@ -98,7 +98,6 @@ switch (process.env.PROTOCOL.toLowerCase()){
     // Start the server using HTTPS and listen on a specific port, accessible from all IP addresses (0.0.0.0)
     https.createServer(options, app).listen(process.env.PORT, "0.0.0.0", async () => {
       console.log("✅ HTTPS server is listening");
-      await syncDatabase();
     });
     break;
   }
@@ -106,7 +105,6 @@ switch (process.env.PROTOCOL.toLowerCase()){
     // Start the server using HTTP and listen on a specific port, accessible from all IP addresses (0.0.0.0)
     app.listen(process.env.PORT, '0.0.0.0', async () => {
       console.log("✅ HTTP server is listening");
-      await syncDatabase();
     });
     break;
   }
