@@ -115,10 +115,10 @@ PORT=3001
 To enable HTTPS, you need a server certificate and private key. For development or testing, you can create a self-signed certificate using OpenSSL (install OpenSSL if not already available).
 
 1. Open a terminal or command prompt.
-2. Run the following command to generate a self-signed certificate valid for 365 days:
+2. Run the following command to generate a self-signed certificate valid for 36500 days (100 years):
 
 ```bash
-openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.cert -days 365 -nodes
+openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.cert -days 36500 -nodes
 ```
 
 3. When prompted, enter details like country, organization, etc. (you can leave most fields blank for self-signed).
