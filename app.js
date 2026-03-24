@@ -116,38 +116,8 @@ switch (process.env.PROTOCOL.toLowerCase()){
 // Export the Express app to run the website from the main Electron process
 module.exports = app;
 
-// Sync local database with another server at startup
-async function syncDatabase() {
-  try {
-    const dbBuffer = fs.readFileSync(dbPath); // Read local DB file
-    const logs = await getLogs(); // Get recent logs to send as sync reference
-    const time = logs[0]?.time || 0; // Use the latest log time or 0 if none
-
-    // Send DB to other server via POST for synchronization
-    const response = await fetch(`${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}/api/sync`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        'Content-Length': dbBuffer.length,
-        'x-sync-key': process.env.SYNC_SECRET, // Authentication for sync
-        'time': time
-      },
-      body: dbBuffer
-    });
-
-    if (response.status === 202) {
-      const buffer = Buffer.from(await response.arrayBuffer()); // Receive updated DB
-      fs.writeFileSync(dbPath, buffer); // Overwrite local DB
-      console.log("✅ Database successfully synced from other server.");
-    }
-    await logSyncStatus("Success", "start", null,  `${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}`);
-  } catch (err) {
-    await logSyncStatus(err.stack || err.toString(), "start", null, `${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}`);
-  }
-}
-
 // Check if the client IP is allowed to access the server
 async function isAllowed(req) {
   const ip = req.socket.remoteAddress;  // Get client IP
-  return [process.env.HOST, process.env.OTHER_HOST].includes(ip) || await isWhitelisted(ip); // Allow if matches host or in whitelist
+  return process.env.HOST === ip || await isWhitelisted(ip); // Allow if matches host or in whitelist
 }

@@ -6,7 +6,6 @@ const { isValidIPv4, logError } = require('./backend/server_functions'); // Impo
 const { getDeviceAll, getLogs, getWhitelistAll, insertTable} = require('./backend/server_functions.js');
 const fs = require('fs');
 const archiver = require('archiver');
-const unzipper = require('unzipper');
 
 // Check if the app is in development mode or production
 const isDev = !app.isPackaged;  // If the app is not packaged, it is in development mode
@@ -15,7 +14,6 @@ const appRoot = isDev ? __dirname : path.join(process.resourcesPath);  // Set th
 // Set the appropriate icon and db path based on whether the app is in development or production
 let iconPath;
 let dbPath;
-let syncStatusPath;
 let envPath;
 if (!isDev){
   iconPath = path.join(appRoot, 'apple.ico');  // Production icon path
@@ -25,7 +23,6 @@ if (!isDev){
 } else {
   iconPath = path.join(appRoot, 'public/assets/apple.ico'); // Development icon path
   dbPath = path.join(appRoot, "resources/database.db");  // Development database path
-  syncStatusPath = path.join(appRoot, "resources/sync_status.log");  // Development database path
   envPath = path.join(appRoot, ".env");
 }
 
@@ -139,19 +136,13 @@ async function createMenu() {
         {
           label: 'Open Server Configuration',
           click: async () => {
-            await shell.openPath(envPath);  // Open the SQLite database file
+            await shell.openPath(envPath);  // Open the env file
           }
         },
         {
           label: 'Open Database',
           click: async () => {
             await shell.openPath(dbPath);  // Open the SQLite database file
-          }
-        },
-        {
-          label: 'Show Sync Status',
-          click: async () => {
-            await shell.openPath(syncStatusPath);  // Open the SQLite database file
           }
         }
       ]
@@ -216,7 +207,7 @@ async function isPortInUse(port) {
 // When the app is ready, start the server, create the tray, and show activation message
 app.whenReady().then(async () => {
 
-  const { PROTOCOL, HOST, OTHER_HOST, PORT } = process.env;
+  const { PROTOCOL, HOST, PORT } = process.env;
 
   if (!PROTOCOL || !["http","https"].includes(PROTOCOL.toLowerCase())) {
     await showErrorAndExit(`Invalid PROTOCOL [${PROTOCOL}]. Please set it to [HTTP] or [HTTPS] in the .env file.`);
@@ -225,11 +216,6 @@ app.whenReady().then(async () => {
 
   if (!HOST || HOST.toLowerCase().includes("localhost") || !isValidIPv4(HOST)){
     await showErrorAndExit(`Invalid HOST [${HOST}]. Please use a valid IPv4 address.`);
-    return;
-  }
-
-    if (!OTHER_HOST || OTHER_HOST.toLowerCase().includes("localhost") || !isValidIPv4(OTHER_HOST)){
-    await showErrorAndExit(`Invalid OTHER_HOST [${OTHER_HOST}]. Please use a valid IPv4 address.`);
     return;
   }
 

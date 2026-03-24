@@ -215,7 +215,7 @@ router.get('/getIP', (req, res) => {
 router.post('/isHost', (req, res) => {
     const { userIP } = req.body;
     if (userIP && !isValidIPv4(userIP)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
-    res.json([process.env.HOST, process.env.OTHER_HOST].includes(userIP));
+    res.json(process.env.HOST === userIP);
 });
 
 /** 🟢 GET all whitelisted users
@@ -251,50 +251,6 @@ router.get('/getLogs', async (req, res) => {
         // Log and return server error if query fails
         await logError("Error fetching devices", err);
         res.status(500).json({ error: "Internal Server Error" });
-    }
-});
-
-/** Sync database between servers
-* @param {express.Request} req - HTTP request (expects `time` and `x-sync-key` in headers and DB octet-stream in body).
-* @returns {express.Response} res - HTTP response (success message or DB file as octet-stream depending on which server has the newest data).
-*/
-router.post('/sync', async (req, res) => {
-    // Allow only trusted hosts + check sync secret
-    if (![process.env.HOST, process.env.OTHER_HOST].includes(req.socket.remoteAddress) || 
-        req.headers['x-sync-key'] !== process.env.SYNC_SECRET)
-            return res.status(403).json({ error: 'Forbidden' });
-
-    // Compare incoming timestamp with local logs
-    const IncomingTime = Number(req.headers['time']) || 0;
-    const logs = await getLogs();
-    const localTime = logs[0]?.time || 0;
-
-    if (localTime > IncomingTime) {
-        // Local DB is newer → send it to the requester
-        try {
-            const dbBuffer = fs.readFileSync(dbPath);
-
-            res.setHeader('Content-Type', 'application/octet-stream');
-            res.setHeader('Content-Length', dbBuffer.length);
-            res.setHeader('time', localTime); // Send back local timestamp
-            res.status(202).send(dbBuffer);
-
-        } catch (err) {
-            await logError("Error forwarding sync request to other server", err);
-            await logSyncStatus(`Failed to forward sync request:\n    ${err.stack || err.toString()}`);
-            res.status(500).send("Failed to forward request to other server");
-        }
-    } else {
-        // Incoming DB is newer → overwrite local DB
-        try {
-            await overwriteDatabase(req, res);
-            await logSyncStatus("Synced database on startup successfully");
-        } catch (err) {
-            await logError("error overwriting database", err);
-            await logSyncStatus(`Failed to sync database:\n    ${err.stack || err.toString()}`);
-        }
-        
-        res.status(200).send("Synced successfully!");
     }
 });
 

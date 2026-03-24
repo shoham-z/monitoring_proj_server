@@ -14,17 +14,12 @@ const dbPath = isDev
 const errorFolder = isDev
   ? path.join(__dirname, '../resources', 'error_logs') // In dev: database is in ../resources relative to current file
   : path.join(process.resourcesPath, 'error_logs');    // In production: database is in the app's resources folder
-const syncStatusPath = isDev
-  ? path.join(__dirname, '../resources', 'sync_status.log') // In dev: database is in ../resources relative to current file
-  : path.join(process.resourcesPath, 'sync_status.log');    // In production: database is in the app's resources folder
 
 // Open the SQLite database
 let db = new sqlite.Database(dbPath, (err) => {
   if (err) console.error("Error Occurred: ", err); // Log error if database cannot be opened
   else console.log("DataBase Connected"); // Log success message when database is connected
 });
-
-(async () => {await fs.appendFile(syncStatusPath, "", "utf8");})()
 
 db.exec(`
   -- Create "devices" table if it doesn't exist
@@ -280,83 +275,6 @@ async function getLogs(page = 1, search = "") {
 }
 
 /**
- * Forward incoming requests to another server if certain conditions are met.
- * 
- * Conditions:
- * - The request has not already been forwarded (no 'forwarded' header).
- * - The request originates from an allowed host (process.env.HOST or process.env.OTHER_HOST).
- * 
- * @param {express.Request} req - HTTP request to be forwarded to the other server.
- * @returns {Promise<void>} Resolves on success, rejects with error on failure
- */
-async function ForwardToServer2(req) {
-  // Check if request has not already been forwarded
-  // and if the request originates from one of the allowed hosts
-  if (
-    !req.headers['forwarded'] &&
-    [process.env.HOST, process.env.OTHER_HOST].includes(req.socket.remoteAddress)
-  ) {
-    try {
-      // Forward the request to the other server
-      await fetch(`${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}/api${req.path}`, {
-      method: req.method, // Use the same HTTP method as the original request
-      headers: {
-        'Content-Type': 'application/json',
-        'forwarded': 'true',          // Mark the request as forwarded to avoid loops
-        'original-ip': req.socket.remoteAddress // Pass the original client's IP
-      },
-      body: JSON.stringify(req.body)   // Forward the request body as JSON
-      });
-      await logSyncStatus(`Success`, req.path, JSON.stringify(req.body), `${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}`);
-    } catch (err) {
-      await logSyncStatus(err.stack || err.toString(), req.path, JSON.stringify(req.body), `${process.env.PROTOCOL.toLowerCase()}://${process.env.OTHER_HOST}:${process.env.PORT}`);
-    }
-  }
-}
-
-/**
- * Overwrite the current database file with data from an incoming HTTP request.
- * Pipes the request body directly into the database file.
- * 
- * Handles client aborts and file write errors, sending appropriate HTTP responses.
- * 
- * @param {express.Request} req - The incoming HTTP request
- * @param {Express.Response} res - The HTTP response object
- * @returns {Promise<void>} Resolves when the database has been successfully overwritten, rejects on error or if the client aborts
- */
-async function overwriteDatabase(req, res) {
-  return new Promise(async (resolve, reject) => {
-    // Create a writable stream to save the incoming database file
-    const writeStream = await fs.createWriteStream(dbPath);
-
-    // Pipe the request data directly into the file
-    req.pipe(writeStream);
-
-    // Handle case where client aborts the request
-    req.on('aborted', () => {
-      console.warn("Client aborted the request.");
-      writeStream.destroy(); // Stop writing to file
-      if (!res.headersSent) res.status(400).send('Request aborted'); // Send HTTP response if possible
-      reject(new Error('Request aborted')); // Reject the promise
-    });
-
-    // Handle successful completion of writing the file
-    writeStream.on('finish', async () => {
-      console.log("Database saved to:", dbPath);
-      res.status(200).send('Database file received successfully.'); // Response
-      resolve(); // Resolve the promise
-    });
-
-    // Handle errors during file writing
-    writeStream.on('error', async err => {
-      console.error("Error saving DB:", err);
-      res.status(500).send('Failed to save database.'); // Respond with error
-      reject(err); // Reject the promise
-    });
-  });
-}
-
-/**
  * Logs any error message or object to a file in the "errors" directory.
  * Creates the directory and file if they don't exist.
  * @param {string} context - Short label describing where the error occurred (e.g. "Add Device", "Save Log").
@@ -406,77 +324,6 @@ async function logError(context, error) {
     console.error("Failed to log error:", err);
   }
 }
-
-/**
- * Append a timestamped sync status message to a log file.
- * 
- * Format: [DD-MM-YYYY HH:MM:SS] message
- *
- * @param {string} err - Error to log
- * @param {string} action - Action synced
- * @param {string} body - The body of the attempted request
- * @param {string} ip - The IPv4 address of the other server
- */
-async function logSyncStatus(err, action, body, ip) {
-  try {
-
-    const now = new Date();
-
-    const israel = new Date(
-      now.toLocaleString("en-US", { timeZone: "Asia/Jerusalem" })
-    );
-
-    const years = String(israel.getFullYear()).padStart(4, "0");
-    const months = String(israel.getMonth() + 1).padStart(2, "0");
-    const days = String(israel.getDate()).padStart(2, "0");
-    const hours = String(israel.getHours()).padStart(2, "0");
-    const minutes = String(israel.getMinutes()).padStart(2, "0");
-    const seconds = String(israel.getSeconds()).padStart(2, "0");
-
-    let message;
-    let state = err === "Success" ? "Successfully synced" : "Failed to sync";
-
-    if (action === "start") {
-      message = `${state} at startup:`;
-    } else {
-      message = `${state} ${action} action:\n   Body: ${body}`;
-    }
-
-    message += `\n   Other server IP address: ${ip}`
-
-    if (JSON.stringify(err)?.includes("fetch failed")) {
-      message += "\n   Reason: Couldn't reach other server";
-    } else {
-      message += `\n   Reason: ${err.stack || err.toString()}`;
-    }
-
-    const logLine = `[${days}-${months}-${years} ${hours}:${minutes}:${seconds}] ${message}`;
-
-    let cleaned = "";
-    let prefix = "";
-    try {
-      const existing = await fs.readFile(syncStatusPath, "utf8");
-
-      const lines = existing.split("\n").filter(line => line.trim().length > 0); // remove empty lines
-      cleaned = lines.join("\n");
-
-      // Add a newline at the start if the last line in the file is not empty
-      if (lines.length > 0) {
-        prefix = "\n";
-      }
-
-    } catch (err) {
-      // file doesn't exist → cleaned stays ""
-    }
-
-    // --- Write cleaned log + new line ---
-    await fs.writeFile(syncStatusPath, cleaned + prefix + logLine, "utf8");
-
-  } catch (err) {
-    await logError("Failed to write sync log:", err);
-  }
-}
-
 
 /**
  * Function to validate if an input is a valid IPv4 address
@@ -619,6 +466,5 @@ module.exports = {
   overwriteDatabase,
   logError,
   isValidIPv4,
-  logSyncStatus,
   insertTable
 };
