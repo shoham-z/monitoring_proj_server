@@ -43,8 +43,10 @@ async function loadLogs(page, direction, search) {
           <td>${row.clientIP}</td>
           <td>${row.ip}</td>
           <td>${row.name}</td>
+          <td>${row.location}</td>
           <td>${row.newIP === "null" ? "" : row.newIP || ""}</td>
           <td>${row.newName === "null" ? "" : row.newName || ""}</td>
+          <td>${row.newLocation === "null" ? "" : row.newLocation || ""}</td>
         </tr>
       `;
       tbody.insertAdjacentHTML(direction, tr);

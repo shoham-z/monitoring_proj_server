@@ -27,6 +27,7 @@ db.exec(`
     "id"    INTEGER NOT NULL UNIQUE,   -- Unique numeric ID for each device
     "ip"    TEXT NOT NULL UNIQUE,      -- Device IP address (must be unique)
     "name"  TEXT NOT NULL UNIQUE,      -- Device name (must be unique)
+    "location"	TEXT NOT NULL,         -- Location of the device
     PRIMARY KEY("id" AUTOINCREMENT)    -- "id" is the primary key and auto-increments
   );
 
@@ -38,8 +39,10 @@ db.exec(`
     "clientIP"  TEXT NOT NULL,            -- IP of the client that performed the action
     "ip"        TEXT NOT NULL,            -- IP of the device affected
     "name"      TEXT NOT NULL,            -- Name of the device affected
+    "location"	TEXT NOT NULL,            -- Location of the device affected
     "newName"   TEXT,                     -- New name if device was renamed (optional)
     "newIP"     INTEGER,                  -- New IP if device IP changed (optional)
+    "newLocation"	TEXT,                   -- New location if device location changed (optional)
     PRIMARY KEY("id" AUTOINCREMENT)       -- "id" is primary key and auto-increments
   );
 
@@ -55,11 +58,12 @@ db.exec(`
  * Add new device
  * @param {string} ip - IP address of the new device
  * @param {string} name - Name of the new device
+ * @param {string} location - The location of the device
  * @returns {Promise<void>} Resolves on success, rejects with error on failure
  */
-async function addDevice(ip, name) {
+async function addDevice(ip, name, location) {
   return new Promise((resolve, reject) => {
-    db.run(`INSERT INTO devices (ip, name) VALUES (?, ?)`, [ip, name], function (err) {
+    db.run(`INSERT INTO devices (ip, name, location) VALUES (?, ?, ?)`, [ip, name, location], function (err) {
       err ? reject(err) : resolve()
     });
   });
@@ -83,9 +87,10 @@ async function deleteDevice(ip) {
  * @param {string} id - ID of the device (Primary Key)
  * @param {string} ip - IP address of the device to be edited
  * @param {string} name Name of the device to be edited
+ * @param {string} location - The location of the device
  * @returns {Promise<void>} Resolves on success, rejects with error on failure
  */
-async function editDevice(id, ip, name) {
+async function editDevice(id, ip, name, location) {
   return new Promise((resolve, reject) => {
     const updates = []; // Array to store columns to update
     const values = []; // Array to store corresponding values
@@ -98,6 +103,10 @@ async function editDevice(id, ip, name) {
     if (name.trim() !== "") {
       updates.push("name = ?"); // Add name column to update
       values.push(name); // Add new name value
+    }
+    if (location.trim() !== "") {
+      updates.push("location = ?"); // Add location column to update
+      values.push(location); // Add new location value
     }
 
     // If no fields are provided, nothing to update; resolve immediately
@@ -207,10 +216,16 @@ async function getWhitelistAll() {
  * @param {String|null} newName - The new name after the action (if applicable)
  * @returns {Promise<void>} Resolves on success, rejects with error on failure
  */
-async function saveLog(type, clientIP, ip, name, newIP, newName){
+async function saveLog(type, clientIP, ip, name, location, newIP, newName, newLocation){
   return new Promise((resolve, reject) => {
-  db.run(`INSERT INTO logs (type, time, clientIP, ip, name, newIP, newName) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  [type, Date.now(), clientIP, ip, name, newIP, newName],
+  
+  // Only keep new values if they are actually different
+  const finalNewIP = (newIP !== null && newIP !== ip) ? newIP : null;
+  const finalNewName = (newName !== null && newName !== name) ? newName : null;
+  const finalNewLocation = (newLocation !== null && newLocation !== location) ? newLocation : null;
+
+  db.run(`INSERT INTO logs (type, time, clientIP, ip, name, location, newIP, newName, newLocation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  [type, Date.now(), clientIP, ip, name, location, finalNewIP, finalNewName, finalNewLocation],
     function (err) {
       err ? reject(err) : resolve()
     });

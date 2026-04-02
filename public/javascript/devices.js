@@ -24,13 +24,14 @@ async function loadDeviceData() {
       <tr>
         <td>${row.ip}</td>
         <td>${row.name}</td>
+        <td>${row.location}</td>
         <td style="white-space: nowrap;">
           <button class="green-btn"
-            onclick='setMenu("edit", ${JSON.stringify(row.ip)}, ${JSON.stringify(row.name)}, ${row.id})'>
+            onclick='setMenu("edit", ${JSON.stringify(row.ip)}, ${JSON.stringify(row.name)}, ${JSON.stringify(row.location)}, ${row.id})'>
             Edit
           </button>
           <button class="red-btn" 
-            onclick='deleteRow(${JSON.stringify(row.ip)}, ${JSON.stringify(row.name)})'>
+            onclick='deleteRow(${JSON.stringify(row.ip)}, ${JSON.stringify(row.name)}, ${JSON.stringify(row.location)})'>
             Delete
           </button>
         </td>
@@ -122,13 +123,15 @@ function edit(e) {
   e.preventDefault();
   const ipEl = document.getElementById("IP Address");
   const nameEl = document.getElementById("Name");
+  const locationEl = document.getElementById("Location");
   const ip = ipEl.value || ipEl.placeholder;
   const name = nameEl.value || nameEl.placeholder;
+  const location = locationEl.value || locationEl.placeholder;
   const id = document.getElementById("menuId").value;
   // Check if at least one field is filled and if the IP is valid
-  if (!ip && (!name || name.trim() === "")) return errorText("Please fill out at least one field\n (IP Address or Name).");
+  if (!ip && (!name || name.trim() === "") && (!location || location.trim() === "")) return errorText("Please fill out at least one field\n (Either IP Address, Name or Location).");
   if (!isValidIPv4(ip) && ip.trim() !== "") return errorText("Please enter a valid IP address");
-  submitForm("edit", "PUT", { id, ip, name }, "Edited Successfully!");
+  submitForm("edit", "PUT", { id, ip, name, location }, "Edited Successfully!");
 }
 
 /**
@@ -139,19 +142,21 @@ function add(e) {
   e.preventDefault();
   const ip = document.getElementById("IP Address").value;
   const name = document.getElementById("Name").value;
+  const location = document.getElementById("Location").value;
   // Check if both fields are filled and if the IP is valid
-  if (!ip || !name) return errorText("Please fill out all fields.");
+  if (!ip || !name || !location) return errorText("Please fill out all fields.");
   if (!isValidIPv4(ip)) return errorText("Please enter a valid IP address");
-  submitForm("add", "POST", { ip, name }, "Added Successfully!");
+  submitForm("add", "POST", { ip, name, location }, "Added Successfully!");
 }
 
 /**
  * Handles device deletion confirmation and triggers delete API call.
  * @param {string} ip - The IP address of the device to delete.
  * @param {string} name - The name of the device to delete.
+ * @param {string} location - The location of the device.
  */
-function deleteRow(ip, name) {
-  document.getElementById("deleteH1").textContent = `Name: ${name} \n IP: ${ip}`;
+function deleteRow(ip, name, location) {
+  document.getElementById("deleteH1").textContent = `Name: ${name} \n IP: ${ip} \n Location: ${location}`;
   toggleMenu("deleteMenu");
   // On confirmation, call submitForm to delete the device
   document.getElementById('confirmDelete').onclick = () => {
@@ -163,16 +168,19 @@ function deleteRow(ip, name) {
 /**
  * Configures and displays the menu for editing or adding a device.
  * @param {string} menuType - The type of menu ("edit" or "add").
- * @param {string} [ip] - The IP address to display as a placeholder (for editing).
- * @param {string} [name] - The device name to display as a placeholder (for editing).
- * @param {string} [id] - The ID of the device being edited.
+ * @param {string} ip - The IP address to display as a placeholder (for editing).
+ * @param {string} name - The device name to display as a placeholder (for editing).
+ * @param {string} location - The location of the device.
+ * @param {string} id - The ID of the device being edited.
  */
-function setMenu(menuType, ip, name, id) {
+function setMenu(menuType, ip, name, location, id) {
   const ipEl = document.getElementById("IP Address");
   const nameEl = document.getElementById("Name");
-  ipEl.value = nameEl.value = "";
+  const locationEl = document.getElementById("Location");
+  ipEl.value = nameEl.value = locationEl.value = "";
   ipEl.placeholder = ip || "";
   nameEl.placeholder = name || "";
+  locationEl.placeholder = location || "";
   document.getElementById("menuId").value = id || "";
   document.getElementById("invalid-input").style.display = "none";
   document.getElementById("MenuH2").textContent = menuType === "edit" ? "Edit Menu" : "Add Menu";

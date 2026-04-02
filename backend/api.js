@@ -2,11 +2,10 @@
 const express = require('express'); // Express framework for server handling
 const router = express.Router(); // Router for API routes
 // Import functions from 'server_functions.js'
-const { addDevice, editDevice, deleteDevice, getDeviceIP, getDeviceID, getDeviceAll, toggleWhitelist, getWhitelistAll, saveLog, getLogs, ForwardToServer2, overwriteDatabase, logError, isValidIPv4, logSyncStatus } = require('./server_functions'); 
+const { addDevice, editDevice, deleteDevice, getDeviceIP, getDeviceID, getDeviceAll, toggleWhitelist, getWhitelistAll, saveLog, getLogs, logError, isValidIPv4 } = require('./server_functions'); 
 const path = require('path'); // Path module to manage file paths
 const fs = require('fs'); // File system module (read/write files)
 
-let dbPath;
 try {
   const { app } = require('electron'); // Import Electron's app module to check app environment
   const isDev = !app.isPackaged; // Determine if the app is in development mode (not packaged)
@@ -72,13 +71,14 @@ router.get('/get', async (req, res) => {
 * @returns {express.Response} res - HTTP response.
 */
 router.post('/add', async (req, res) => {
-    const { ip, name } = req.body;
-    if ([ip, name].includes(undefined)) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missin}
+    const { ip, name, location } = req.body;
+    if ([ip, name, location].includes(undefined)) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missin}
     if (ip && !isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
     if (name.trim() === "") return res.status(400).json({ error: "Name cannot be empty" }); // Return 400 if required fields are missing
+    if (location.trim() === "") return res.status(400).json({ error: "Location cannot be empty" }); // Return 400 if required fields are missing
 
     try {
-        await addDevice(ip, name); // Add the new device to the database
+        await addDevice(ip, name, location); // Add the new device to the database
     } catch (err) {
         if (String(err).includes("UNIQUE constraint failed")) {
             return res.status(409).json({ error: err?.message }); // Return 409 if there's a conflict (e.g., device already exists)
@@ -91,8 +91,7 @@ router.post('/add', async (req, res) => {
     res.status(201).json({ message: "Device added successfully" }); // Return a success message
 
     try {
-        await saveLog("Add Device", req.headers['original-ip'] || req.socket.remoteAddress, ip, name);
-        await ForwardToServer2(req);
+        await saveLog("Add Device", req.headers['original-ip'] || req.socket.remoteAddress, ip, name, location);
     } catch (err) {
         await logError("Error logging/syncing action", err);
     }
@@ -118,8 +117,7 @@ router.delete('/delete', async (req, res) => {
     }
 
     try {
-        await saveLog("Delete Device", req.headers['original-ip'] || req.socket.remoteAddress, ip, row.name);
-        await ForwardToServer2(req);
+        await saveLog("Delete Device", req.headers['original-ip'] || req.socket.remoteAddress, ip, row.name, row.location);
     } catch (err) {
         await logError("Error logging/syncing action", err);
     }
@@ -130,15 +128,16 @@ router.delete('/delete', async (req, res) => {
 * @returns {express.Response} res - HTTP response.
 */
 router.put('/edit', async (req, res) => {
-    const { id, ip, name } = req.body; // Extract data to edit the device
-    if ([id, ip, name].includes(undefined)) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missing
+    const { id, ip, name, location } = req.body; // Extract data to edit the device
+    if ([id, ip, name, location].includes(undefined)) return res.status(400).json({ error: "Missing required fields" }); // Return 400 if required fields are missing
     if (ip && !isValidIPv4(ip)) return res.status(400).json({ error: "Invalid IPv4 address" }); // Return 400 if required fields are missing
     if (name.trim() === "") return res.status(400).json({ error: "Name cannot be empty" }); // Return 400 if required fields are missing
+    if (location.trim() === "") return res.status(400).json({ error: "Location cannot be empty" }); // Return 400 if required fields are missing
     var row;
     try {
         row = await getDeviceID(id); // Get device info before editing (for logging)
         if (!row) return res.status(404).json({ error: "Device not found" });
-        await editDevice(id, ip, name); // Call the function to update the device in the database
+        await editDevice(id, ip, name, location); // Call the function to update the device in the database
     } catch (err) {
         if (String(err).includes("UNIQUE constraint failed")) {
             return res.status(409).json({ error: err?.message }); // Return 409 if there's a conflict (e.g., device already exists)
@@ -151,8 +150,7 @@ router.put('/edit', async (req, res) => {
     res.status(200).json({ message: "Edited Successfully!" }); // Return success message if the update is successful
 
     try {
-        await saveLog("Edit Device", req.headers['original-ip'] || req.socket.remoteAddress, row.ip, row.name, ip, name);
-        await ForwardToServer2(req);
+        await saveLog("Edit Device", req.headers['original-ip'] || req.socket.remoteAddress, row.ip, row.name, row.location, ip, name, location);
     } catch (err) {
         await logError("Error logging/syncing action", err);
     }
@@ -193,7 +191,6 @@ router.post('/whitelist', async (req, res) => {
 
     try {
         await saveLog(`${state}`, req.headers['original-ip'] || req.socket.remoteAddress, clientIp, name);
-        await ForwardToServer2(req);
     } catch (err){
         await logError("Error logging/syncing action", err);
     }
