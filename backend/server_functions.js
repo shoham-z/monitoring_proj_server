@@ -52,6 +52,8 @@ db.exec(`
     "name"  TEXT NOT NULL UNIQUE,         -- Name associated with the IP (must be unique)
     PRIMARY KEY("ip")                     -- Use IP as the primary key
   );
+
+  CREATE INDEX idx_logs_time_desc ON logs(time DESC); -- Optimizes ORDER BY time DESC queries
 `);
 
 /**
