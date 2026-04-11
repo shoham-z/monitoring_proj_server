@@ -53,7 +53,7 @@ db.exec(`
     PRIMARY KEY("ip")                     -- Use IP as the primary key
   );
 
-  CREATE INDEX idx_logs_time_desc ON logs(time DESC); -- Optimizes ORDER BY time DESC queries
+  CREATE IF NOT EXISTS INDEX idx_logs_time_desc ON logs(time DESC); -- Optimizes ORDER BY time DESC queries
 `);
 
 /**
