@@ -78,7 +78,7 @@ app.get('/clients', async (req, res) => {
 });
 
 // Serve the logs page if whitelisted; otherwise show blocked page
-app.get('/logs', async (req, res) => {
+app.get('/logsPage', async (req, res) => {
     if (await isAllowed(req)){res.sendFile(path.join(__dirname, 'public', 'logs.html'));}
     else {res.status(403).sendFile(path.join(__dirname, 'public', 'blocked.html'));} // Send the clients.html page as a response
 });
