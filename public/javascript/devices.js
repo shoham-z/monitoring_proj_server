@@ -180,7 +180,7 @@ function setMenu(menuType, ip, name, location, id) {
   ipEl.value = nameEl.value = locationEl.value = "";
   ipEl.placeholder = ip || "";
   nameEl.placeholder = name || "";
-  locationEl.placeholder = location || "";
+  locationEl.value = location || "Ramle";
   document.getElementById("menuId").value = id || "";
   document.getElementById("invalid-input").style.display = "none";
   document.getElementById("MenuH2").textContent = menuType === "edit" ? "Edit Menu" : "Add Menu";

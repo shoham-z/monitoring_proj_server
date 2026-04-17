@@ -80,6 +80,39 @@ input::placeholder {
   color: #aaa;
 }
 
+/* Select element styling */
+select {
+  width: 100%;                             /* Fill container */
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 16px;
+  background-color: #38343c;             /* Dark background */
+  color: white;
+  border: 1px solid #555;                /* Subtle border */
+  border-radius: 6px;
+  box-sizing: border-box;                  /* Padding included in width */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+/* Focus effect for select elements */
+select:focus {
+  outline: none;
+  border: 1px solid #569fcc;             /* Highlight on focus */
+}
+
+/* Select option styling */
+select option {
+  background-color: #38343c;             /* Dark background to match select */
+  color: white;                          /* White text */
+  padding: 8px;                          /* Comfortable padding */
+  font-size: 16px;                       /* Consistent font size */
+}
+
+/* Hover effect for options (limited browser support) */
+select option:hover {
+  background-color: #4a454f;             /* Slightly lighter on hover */
+}
+
 /* === SEARCH BAR === */
 /* Style search bar input at top of table */
 #search-bar {
