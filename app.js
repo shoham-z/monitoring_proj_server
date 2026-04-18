@@ -19,6 +19,9 @@ dotenv.config({ path: path.join(basePath, '.env'), quiet: true }); // Load .env 
 const { router } = require('./backend/api');
 const app = express(); // Create a new Express application
 
+// Serve static assets (images, CSS, JS) from 'public'; default page is devices.html
+app.use(express.static(path.join(__dirname, 'public'), { index: 'devices.html' }));
+
 app.use((req, res, next) => {
   const host = req.headers.host;
   // Block access if the host header contains "localhost" or "127.0.0.1"
@@ -78,13 +81,10 @@ app.get('/clients', async (req, res) => {
 });
 
 // Serve the logs page if whitelisted; otherwise show blocked page
-app.get('/logsPage', async (req, res) => {
+app.get('/logs', async (req, res) => {
     if (await isAllowed(req)){res.sendFile(path.join(__dirname, 'public', 'logs.html'));}
     else {res.status(403).sendFile(path.join(__dirname, 'public', 'blocked.html'));} // Send the clients.html page as a response
 });
-
-// Serve static assets (images, CSS, JS) from 'public'; default page is devices.html
-app.use(express.static(path.join(__dirname, 'public'), { index: 'devices.html' }));
 
 (async () => {
 switch (process.env.PROTOCOL.toLowerCase()){

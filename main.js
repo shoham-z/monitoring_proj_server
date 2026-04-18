@@ -66,6 +66,8 @@ function createWindow() {
       mainWindow = null;  // Allow re-creation
     }
   });
+
+  mainWindow.webContents.session.clearCache();
 }
 
 // Function to create the tray icon and its behavior
