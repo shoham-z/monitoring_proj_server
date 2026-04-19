@@ -420,7 +420,7 @@ async function insertTable(tableName, rows) {
         columns = ['ip', 'name'];
         break;
       case 'devices':
-        columns = ['ip', 'name', 'id'];
+        columns = ['ip', 'name', 'location', 'id'];
         break;
       case 'logs':
         columns = ['type', 'time', 'clientIP', 'ip', 'name', 'newIP', 'newName'];
